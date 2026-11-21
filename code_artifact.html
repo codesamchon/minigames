@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>창고지기 - 소코반 퍼즐</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 한글 웹폰트 (Pretendard / Noto Sans KR 호환) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 75%);
+            color: #f8fafc;
+            overscroll-behavior: none;
+        }
+
+        /* 캔버스 컨테이너 및 그림자 효과 */
+        .game-board-wrap {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 게임용 입체 버튼 스타일 */
+        .ctrl-btn {
+            background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: 0 4px 0 #0f172a, 0 6px 12px rgba(0, 0, 0, 0.35);
+            transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+        }
+
+        .ctrl-btn:hover {
+            background: linear-gradient(180deg, #3b4c63 0%, #243247 100%);
+        }
+
+        .ctrl-btn:active, .ctrl-btn.pressed {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #0f172a, 0 2px 5px rgba(0, 0, 0, 0.35);
+        }
+
+        .action-btn {
+            background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+            border: 1px solid rgba(96, 165, 250, 0.4);
+            box-shadow: 0 4px 0 #1e3a8a, 0 6px 14px rgba(37, 99, 235, 0.35);
+            transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+        }
+
+        .action-btn:hover {
+            filter: brightness(1.08);
+        }
+
+        .action-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #1e3a8a;
+        }
+
+        /* 모달 등장 애니메이션 */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.92) translateY(8px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-card {
+            animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* 흔들림 효과 (벽 충돌 시) */
+        @keyframes bumpShake {
+            0%, 100% { transform: translate(0, 0); }
+            30% { transform: translate(var(--bx, 0px), var(--by, 0px)); }
+            65% { transform: translate(calc(var(--bx, 0px) * -0.4), calc(var(--by, 0px) * -0.4)); }
+        }
+
+        .bump-anim {
+            animation: bumpShake 0.14s ease-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4 overflow-x-hidden">
+
+    <!-- 상단 헤더 & 컨트롤 바 -->
+    <header class="w-full max-w-2xl flex flex-col gap-2">
+        <div class="flex items-center justify-between bg-slate-800/80 backdrop-blur border border-slate-700/70 rounded-2xl px-3.5 py-2.5 shadow-lg">
+            <!-- 타이틀 및 현재 스테이지 -->
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-orange-600/25 border border-orange-400/40 flex items-center justify-center shadow-inner shrink-0">
+                    <!-- 창고 상자 SVG 아이콘 -->
+                    <svg class="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <rect x="3" y="3" width="18" height="18" rx="3" fill="currentColor" fill-opacity="0.2"/>
+                        <path d="M3 9h18M9 3v18M15 3v18M3 15h18" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-base sm:text-lg font-black tracking-tight text-white truncate">창고지기</h1>
+                        <span id="difficultyBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">입문</span>
+                    </div>
+                    <p id="stageTitleText" class="text-xs text-slate-300 font-medium truncate">스테이지 1 / 20 · 직선 밀기</p>
+                </div>
+            </div>
+
+            <!-- 우측 유틸 버튼 (이전/다음 빠른 이동, 스테이지 선택, 효과음, 도움말) -->
+            <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                <button id="btnPrevStage" class="ctrl-btn p-2 rounded-xl text-slate-200 disabled:opacity-35 disabled:pointer-events-none" title="이전 스테이지 ([)" aria-label="이전 스테이지">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button id="btnNextStageQuick" class="ctrl-btn p-2 rounded-xl text-slate-200 disabled:opacity-35 disabled:pointer-events-none" title="다음 스테이지 (])" aria-label="다음 스테이지">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+
+                <button id="btnStageSelect" class="ctrl-btn px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-100 flex items-center gap-1.5" title="전체 20개 스테이지 선택">
+                    <svg class="w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                    </svg>
+                    <span class="hidden xs:inline sm:inline">스테이지</span>
+                </button>
+
+                <button id="btnSound" class="ctrl-btn p-2 rounded-xl text-slate-200" title="효과음 켜기/끄기" aria-label="효과음 토글">
+                    <svg id="iconSoundOn" class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" stroke-linecap="round"/>
+                    </svg>
+                    <svg id="iconSoundOff" class="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                        <line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round"/>
+                        <line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round"/>
+                    </svg>
+                </button>
+
+                <button id="btnHelp" class="ctrl-btn p-2 rounded-xl text-slate-200" title="도움말" aria-label="게임 도움말">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5" stroke-linecap="round"/>
+                        <circle cx="12" cy="16.8" r="0.6" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 실시간 스탯 및 기능 버튼 바 -->
+        <div class="grid grid-cols-4 gap-1.5 sm:gap-2">
+            <div class="bg-slate-800/65 border border-slate-700/60 rounded-xl px-2.5 py-1.5 text-center">
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">이동 횟수</div>
+                <div id="statMoves" class="text-sm sm:text-base font-extrabold text-white tabular-nums">0</div>
+            </div>
+            <div class="bg-slate-800/65 border border-slate-700/60 rounded-xl px-2.5 py-1.5 text-center">
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">밀기 횟수</div>
+                <div id="statPushes" class="text-sm sm:text-base font-extrabold text-amber-300 tabular-nums">0</div>
+            </div>
+            <div class="bg-slate-800/65 border border-slate-700/60 rounded-xl px-2.5 py-1.5 text-center">
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">목표 달성</div>
+                <div id="statTargets" class="text-sm sm:text-base font-extrabold text-emerald-400 tabular-nums">0 / 0</div>
+            </div>
+            <div class="bg-slate-800/65 border border-slate-700/60 rounded-xl px-2.5 py-1.5 text-center">
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">최고 기록</div>
+                <div id="statBest" class="text-xs sm:text-sm font-bold text-sky-300 tabular-nums mt-0.5">-</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 중앙 게임 캔버스 영역 -->
+    <main class="w-full max-w-2xl flex-1 flex flex-col items-center justify-center my-2 relative min-h-[260px]">
+        <div id="boardContainer" class="game-board-wrap w-full rounded-2xl p-2 sm:p-3 flex items-center justify-center relative overflow-hidden" style="height: min(54vh, 440px);">
+            <canvas id="gameCanvas"></canvas>
+
+            <!-- 토스트 알림 배너 -->
+            <div id="toastBanner" class="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-600/80 text-xs font-semibold text-slate-100 shadow-lg opacity-0 transition-opacity duration-200 whitespace-nowrap">
+                알림 메시지
+            </div>
+        </div>
+    </main>
+
+    <!-- 하단 조작 패널 (실행 취소 / 초기화 + 모바일/마우스 방향키 패드) -->
+    <footer class="w-full max-w-2xl flex flex-col gap-2 pb-1">
+        <div class="flex items-center justify-between gap-3 bg-slate-800/75 border border-slate-700/70 rounded-2xl px-3.5 py-2.5 shadow-lg">
+            <!-- 좌측: 실행 취소 및 초기화 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+                <button id="btnUndo" class="ctrl-btn px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-100 flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none">
+                    <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                        <path d="M9 14L4 9l5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" stroke-linecap="round"/>
+                    </svg>
+                    <span>실행 취소</span>
+                    <span class="hidden sm:inline text-[10px] text-slate-400 font-normal">(Z)</span>
+                </button>
+
+                <button id="btnReset" class="ctrl-btn px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-100 flex items-center justify-center gap-1.5">
+                    <svg class="w-4 h-4 text-rose-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                        <path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M3 3v5h5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>초기화</span>
+                    <span class="hidden sm:inline text-[10px] text-slate-400 font-normal">(R)</span>
+                </button>
+            </div>
+
+            <!-- 중앙 안내 문구 (데스크톱 표시) -->
+            <div class="hidden md:flex flex-col items-center text-center text-xs text-slate-400 leading-relaxed">
+                <span><strong class="text-slate-200">방향키 / WASD</strong> 이동 · <strong class="text-slate-200">스와이프</strong> 지원</span>
+                <span>모든 상자를 초록색 목표 지점 위에 올려놓으세요!</span>
+            </div>
+
+            <!-- 우측: 터치 및 클릭용 십자 방향 버튼 (D-Pad) -->
+            <div class="grid grid-cols-3 gap-1.5 shrink-0" aria-label="방향 조작 버튼">
+                <div></div>
+                <button data-dir="up" class="dpad-btn ctrl-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-slate-100" aria-label="위로 이동">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M18 15l-6-6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div></div>
+
+                <button data-dir="left" class="dpad-btn ctrl-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-slate-100" aria-label="왼쪽으로 이동">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button data-dir="down" class="dpad-btn ctrl-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-slate-100" aria-label="아래로 이동">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button data-dir="right" class="dpad-btn ctrl-btn w-11 h-10 sm:w-12 sm:h-11 rounded-xl flex items-center justify-center text-slate-100" aria-label="오른쪽으로 이동">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 모달 1: 스테이지 선택 -->
+    <div id="modalStages" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+        <div class="modal-card bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-2xl p-4 sm:p-5 shadow-2xl max-h-[88vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <div>
+                    <h2 class="text-lg font-extrabold text-white">전체 스테이지 선택 (1 ~ 20)</h2>
+                    <p id="clearSummaryText" class="text-xs text-slate-400 mt-0.5">클리어 진행도: 0 / 20</p>
+                </div>
+                <button id="closeStagesModal" class="ctrl-btn p-2 rounded-xl text-slate-300" aria-label="닫기">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+
+            <div id="stageGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 my-3.5 overflow-y-auto pr-1">
+                <!-- 자바스크립트로 20개 스테이지 카드 렌더링 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 2: 스테이지 클리어 축하 -->
+    <div id="modalClear" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="modal-card bg-slate-800 border border-emerald-500/40 rounded-2xl w-full max-w-sm p-6 shadow-2xl text-center">
+            <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center">
+                <svg class="w-8 h-8 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span id="newRecordBadge" class="inline-block mb-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold">신기록 달성!</span>
+            <h2 id="clearHeading" class="text-xl font-black text-white">스테이지 클리어!</h2>
+            <p id="clearSubText" class="text-sm text-slate-300 mt-1">모든 상자를 완벽하게 정리했습니다.</p>
+
+            <div class="grid grid-cols-2 gap-2.5 my-5">
+                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-3">
+                    <div class="text-xs text-slate-400">총 이동 횟수</div>
+                    <div id="clearMoves" class="text-xl font-extrabold text-white mt-0.5">0</div>
+                </div>
+                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-3">
+                    <div class="text-xs text-slate-400">상자 밀기 횟수</div>
+                    <div id="clearPushes" class="text-xl font-extrabold text-amber-300 mt-0.5">0</div>
+                </div>
+            </div>
+
+            <div class="flex gap-2.5">
+                <button id="btnReplayStage" class="ctrl-btn flex-1 py-2.5 rounded-xl text-sm font-bold text-slate-200">
+                    다시 도전
+                </button>
+                <button id="btnNextStage" class="action-btn flex-1 py-2.5 rounded-xl text-sm font-bold text-white">
+                    다음 스테이지
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 3: 게임 규칙 및 조작법 도움말 -->
+    <div id="modalHelp" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="modal-card bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-5 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <h2 class="text-lg font-extrabold text-white">창고지기(소코반) 규칙 & 조작법</h2>
+                <button id="closeHelpModal" class="ctrl-btn p-2 rounded-xl text-slate-300" aria-label="닫기">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+
+            <div class="space-y-3 my-4 text-sm text-slate-300 leading-relaxed">
+                <div class="bg-slate-900/70 rounded-xl p-3 border border-slate-700/70">
+                    <p class="font-bold text-amber-300 mb-1">게임 목표</p>
+                    <p class="text-xs sm:text-sm">창고 관리인을 움직여 모든 <strong class="text-amber-200">나무 상자</strong>를 초록색 <strong class="text-emerald-300">목표 지점</strong> 위로 밀어 넣으면 클리어됩니다.</p>
+                </div>
+                <ul class="space-y-1.5 text-xs sm:text-sm list-disc list-inside text-slate-300">
+                    <li>상자는 <strong>밀기만 가능</strong>하며 당길 수 없습니다.</li>
+                    <li>한 번에 <strong>하나의 상자만</strong> 밀 수 있습니다 (두 개 연속 불가).</li>
+                    <li>구석에 상자가 끼었을 때는 <strong>실행 취소(Z)</strong>나 <strong>초기화(R)</strong>를 활용하세요.</li>
+                </ul>
+                <div class="bg-slate-900/70 rounded-xl p-3 border border-slate-700/70 text-xs space-y-1">
+                    <p class="font-bold text-sky-300 mb-1">조작 안내</p>
+                    <p>• <strong>키보드:</strong> 방향키 또는 W, A, S, D / 실행 취소: Z (Ctrl+Z) / 초기화: R</p>
+                    <p>• <strong>모바일 & 마우스:</strong> 게임 보드 위에서 상하좌우 스와이프 또는 우측 하단 방향 버튼 터치</p>
+                </div>
+            </div>
+
+            <button id="confirmHelpBtn" class="action-btn w-full py-2.5 rounded-xl text-sm font-bold text-white">
+                확인했습니다
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. 검증된 난이도별 소코반 스테이지 데이터 (총 20개 스테이지)
+         * - 스테이지 1 ~ 12 : 신규 추가된 쉬운 입문 · 기초 · 초급 단계별 학습 맵
+         * - 스테이지 13 ~ 20: 기존 8개의 클래식 초급 · 중급 · 상급 · 달인 맵 그대로 유지
+         * 기호 규칙:
+         *   '#' : 적벽돌 벽 (Wall)
+         *   ' ' : 빈 바닥 (Floor)
+         *   '.' : 목표 지점 (Target)
+         *   '$' : 나무 상자 (Box)
+         *   '*' : 목표 지점 위의 상자 (Box on Target)
+         *   '@' : 플레이어 (Player)
+         *   '+' : 목표 지점 위의 플레이어 (Player on Target)
+         * ============================================================================
+         */
+        const STAGES = [
+            // --- [신규 1~4: 입문 (상자 1개 기본 원리 ~ 상자 2개 직관 배치)] ---
+            {
+                id: 1,
+                name: "직선 밀기",
+                difficulty: "입문",
+                badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+                map: [
+                    "#######",
+                    "#@ $ .#",
+                    "#######"
+                ]
+            },
+            {
+                id: 2,
+                name: "모퉁이 돌기",
+                difficulty: "입문",
+                badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+                map: [
+                    "######",
+                    "#@   #",
+                    "# $  #",
+                    "### .#",
+                    "  ####"
+                ]
+            },
+            {
+                id: 3,
+                name: "돌아서 밀기",
+                difficulty: "입문",
+                badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+                map: [
+                    "#######",
+                    "#. $  #",
+                    "#@    #",
+                    "#######"
+                ]
+            },
+            {
+                id: 4,
+                name: "나란히 정돈",
+                difficulty: "입문",
+                badgeClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+                map: [
+                    "#######",
+                    "# . . #",
+                    "# $ $ #",
+                    "#  @  #",
+                    "#######"
+                ]
+            },
+
+            // --- [신규 5~8: 기초 (상자 2개 코너 활용 및 기본 순서 익히기)] ---
+            {
+                id: 5,
+                name: "기역자 복도",
+                difficulty: "기초",
+                badgeClass: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+                map: [
+                    "######",
+                    "#..  #",
+                    "#    #",
+                    "# $$ #",
+                    "#  @ #",
+                    "######"
+                ]
+            },
+            {
+                id: 6,
+                name: "양갈래 창고",
+                difficulty: "기초",
+                badgeClass: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+                map: [
+                    "########",
+                    "#.  # .#",
+                    "# $    #",
+                    "#  @# $#",
+                    "#      #",
+                    "########"
+                ]
+            },
+            {
+                id: 7,
+                name: "안쪽부터 차근차근",
+                difficulty: "기초",
+                badgeClass: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+                map: [
+                    "#########",
+                    "#..     #",
+                    "######  #",
+                    "#    $  #",
+                    "#   $ @ #",
+                    "#       #",
+                    "#########"
+                ]
+            },
+            {
+                id: 8,
+                name: "작은 방의 비밀",
+                difficulty: "기초",
+                badgeClass: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+                map: [
+                    "######",
+                    "# .  #",
+                    "# #$ #",
+                    "# $ @#",
+                    "# .  #",
+                    "######"
+                ]
+            },
+
+            // --- [신규 9~12: 초급 (상자 3개 간단한 길 확보와 순서 퍼즐)] ---
+            {
+                id: 9,
+                name: "세 상자 입문",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "#######",
+                    "# . . #",
+                    "# $ $ #",
+                    "#  $  #",
+                    "# .@  #",
+                    "#######"
+                ]
+            },
+            {
+                id: 10,
+                name: "다리 건너기",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "########",
+                    "#  .   #",
+                    "# #$#  #",
+                    "# $  $ #",
+                    "#. # . #",
+                    "#  @   #",
+                    "########"
+                ]
+            },
+            {
+                id: 11,
+                name: "징검다리 정리",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "########",
+                    "#   .. #",
+                    "# #  . #",
+                    "# $ $$ #",
+                    "#  @#  #",
+                    "#      #",
+                    "########"
+                ]
+            },
+            {
+                id: 12,
+                name: "창고지기 수료",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "########",
+                    "# . . .#",
+                    "# $ $  #",
+                    "### # $#",
+                    "#   @  #",
+                    "#      #",
+                    "########"
+                ]
+            },
+
+            // --- [기존 8개 스테이지 유지 (13~20번 배치)] ---
+            {
+                id: 13,
+                name: "첫걸음",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "######",
+                    "# .  #",
+                    "#  $ #",
+                    "# @$ #",
+                    "#  . #",
+                    "######"
+                ]
+            },
+            {
+                id: 14,
+                name: "좁은 골목",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "####",
+                    "# .#",
+                    "#  ###",
+                    "#*@  #",
+                    "#  $ #",
+                    "#  ###",
+                    "####"
+                ]
+            },
+            {
+                id: 15,
+                name: "세 갈래 방",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "  #####",
+                    "### . ###",
+                    "#   $   #",
+                    "#  #$#  #",
+                    "#  .$.  #",
+                    "#   @   #",
+                    "#########"
+                ]
+            },
+            {
+                id: 16,
+                name: "한 칸의 여유",
+                difficulty: "초급",
+                badgeClass: "bg-sky-500/20 text-sky-300 border-sky-500/30",
+                map: [
+                    "########",
+                    "#      #",
+                    "# .**$@#",
+                    "#      #",
+                    "#####  #",
+                    "    ####"
+                ]
+            },
+            {
+                id: 17,
+                name: "대칭의 미학",
+                difficulty: "중급",
+                badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+                map: [
+                    "  #####",
+                    "  #   #",
+                    "###$# ###",
+                    "#  .$.  #",
+                    "# #.#.# #",
+                    "#  $@$  #",
+                    "### # ###",
+                    "  #   #",
+                    "  #####"
+                ]
+            },
+            {
+                id: 18,
+                name: "중앙 기둥",
+                difficulty: "중급",
+                badgeClass: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+                map: [
+                    "#######",
+                    "#  . .#",
+                    "# $ $ #",
+                    "#  #  #",
+                    "# $ $ #",
+                    "# .@. #",
+                    "#######"
+                ]
+            },
+            {
+                id: 19,
+                name: "다섯 개의 열쇠",
+                difficulty: "상급",
+                badgeClass: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+                map: [
+                    "  #####",
+                    "###   ###",
+                    "# . $ . #",
+                    "# #$#$# #",
+                    "# . @ . #",
+                    "## $#$ ##",
+                    " #  .  #",
+                    " #######"
+                ]
+            },
+            {
+                id: 20,
+                name: "전설의 창고",
+                difficulty: "달인",
+                badgeClass: "bg-rose-500/20 text-rose-300 border-rose-500/30",
+                map: [
+                    "  #####",
+                    "###   #",
+                    "#.@$  #",
+                    "### $.#",
+                    "#.##$ #",
+                    "# # . ##",
+                    "#$ *$$.#",
+                    "#   .  #",
+                    "########"
+                ]
+            }
+        ];
+
+        /**
+         * ============================================================================
+         * 2. Web Audio API 기반 효과음 합성기 (외부 오디오 URL 불필요)
+         * ============================================================================
+         */
+        class SoundManager {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playTone(freq, endFreq, duration, type = 'sine', gainVal = 0.12, delay = 0) {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+
+                    const now = this.ctx.currentTime + delay;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, now);
+                    if (endFreq !== freq) {
+                        osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+                    }
+
+                    gain.gain.setValueAtTime(gainVal, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + duration);
+                } catch (e) {
+                    // 오디오 컨텍스트 제한 시 무시
+                }
+            }
+
+            step() {
+                this.playTone(240, 160, 0.055, 'triangle', 0.08);
+            }
+
+            push() {
+                this.playTone(150, 95, 0.09, 'sawtooth', 0.07);
+                this.playTone(290, 210, 0.07, 'triangle', 0.08, 0.02);
+            }
+
+            targetGoal() {
+                this.playTone(523.25, 523.25, 0.11, 'sine', 0.13, 0);
+                this.playTone(659.25, 659.25, 0.15, 'sine', 0.13, 0.06);
+            }
+
+            bump() {
+                this.playTone(95, 55, 0.08, 'square', 0.06);
+            }
+
+            undo() {
+                this.playTone(360, 220, 0.09, 'sine', 0.09);
+            }
+
+            clearFanfare() {
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                notes.forEach((n, idx) => {
+                    this.playTone(n, n, 0.22, 'triangle', 0.15, idx * 0.09);
+                });
+            }
+        }
+
+        const sound = new SoundManager();
+
+        /**
+         * ============================================================================
+         * 3. 게임 상태 및 저장소 관리 (기존 8개 기록 -> 13~20번 자동 마이그레이션 포함)
+         * ============================================================================
+         */
+        const STORAGE_KEY = 'sokoban_kr_records_v2';
+        const LEGACY_STORAGE_KEY = 'sokoban_kr_records_v1';
+        let bestRecords = {};
+
+        function loadRecords() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    bestRecords = JSON.parse(raw) || {};
+                    return;
+                }
+                // 이전 버전(8스테이지) 저장 데이터가 있다면 13~20번 스테이지 기록으로 승계
+                const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+                if (legacyRaw) {
+                    const legacyObj = JSON.parse(legacyRaw) || {};
+                    const migrated = {};
+                    Object.keys(legacyObj).forEach(oldId => {
+                        const num = parseInt(oldId, 10);
+                        if (num >= 1 && num <= 8) {
+                            migrated[num + 12] = legacyObj[oldId];
+                        }
+                    });
+                    bestRecords = migrated;
+                    saveRecords();
+                }
+            } catch (e) {
+                bestRecords = {};
+            }
+        }
+
+        function saveRecords() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(bestRecords));
+            } catch (e) {
+                // 시크릿 모드 등 로컬스토리지 제한 시 안전 처리
+            }
+        }
+
+        // 전역 게임 상태 변수
+        let currentStageIdx = 0;
+        let gridRows = 0;
+        let gridCols = 0;
+        let staticGrid = []; // '#' 벽, '.' 목표 지점, ' ' 내부 바닥, 'void' 외부 빈 공간
+        let player = { x: 0, y: 0, vx: 0, vy: 0, dir: 'down', stepCount: 0 };
+        let boxes = [];      // [{ id, x, y, vx, vy }]
+        let moves = 0;
+        let pushes = 0;
+        let history = [];    // 실행 취소(Undo) 스택
+        let isCleared = false;
+        let particles = [];  // 목표 지점 도달 및 클리어 파티클 효과
+
+        // DOM 요소 참조
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const boardContainer = document.getElementById('boardContainer');
+        const toastBanner = document.getElementById('toastBanner');
+        let toastTimer = null;
+
+        /**
+         * 토스트 메시지 표시 (alert 대체)
+         */
+        function showToast(msg) {
+            toastBanner.textContent = msg;
+            toastBanner.classList.remove('opacity-0');
+            toastBanner.classList.add('opacity-100');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toastBanner.classList.remove('opacity-100');
+                toastBanner.classList.add('opacity-0');
+            }, 1900);
+        }
+
+        /**
+         * 스테이지 초기화 및 맵 파싱 (내부/외부 바닥 자동 판별 포함)
+         */
+        function loadStage(index) {
+            currentStageIdx = index;
+            const stage = STAGES[index];
+            const rawMap = stage.map;
+
+            gridRows = rawMap.length;
+            gridCols = Math.max(...rawMap.map(row => row.length));
+
+            staticGrid = [];
+            boxes = [];
+            particles = [];
+            moves = 0;
+            pushes = 0;
+            history = [];
+            isCleared = false;
+
+            let boxIdCounter = 1;
+
+            for (let r = 0; r < gridRows; r++) {
+                const rowArr = [];
+                for (let c = 0; c < gridCols; c++) {
+                    const ch = rawMap[r][c] || ' ';
+                    if (ch === '#') {
+                        rowArr.push('#');
+                    } else if (ch === '.') {
+                        rowArr.push('.');
+                    } else if (ch === '$') {
+                        rowArr.push(' ');
+                        boxes.push({ id: boxIdCounter++, x: c, y: r, vx: c, vy: r });
+                    } else if (ch === '*') {
+                        rowArr.push('.');
+                        boxes.push({ id: boxIdCounter++, x: c, y: r, vx: c, vy: r });
+                    } else if (ch === '@') {
+                        rowArr.push(' ');
+                        player = { x: c, y: r, vx: c, vy: r, dir: 'down', stepCount: 0 };
+                    } else if (ch === '+') {
+                        rowArr.push('.');
+                        player = { x: c, y: r, vx: c, vy: r, dir: 'down', stepCount: 0 };
+                    } else {
+                        rowArr.push('void');
+                    }
+                }
+                staticGrid.push(rowArr);
+            }
+
+            // 플레이어 위치에서 BFS 탐색하여 실제 벽 내부 바닥(' ')과 외부 여백('void') 구분
+            const visited = Array.from({ length: gridRows }, () => Array(gridCols).fill(false));
+            const queue = [[player.y, player.x]];
+            visited[player.y][player.x] = true;
+
+            while (queue.length > 0) {
+                const [cy, cx] = queue.shift();
+                if (staticGrid[cy][cx] === 'void') {
+                    staticGrid[cy][cx] = ' ';
+                }
+                const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                for (const [dy, dx] of dirs) {
+                    const ny = cy + dy;
+                    const nx = cx + dx;
+                    if (ny >= 0 && ny < gridRows && nx >= 0 && nx < gridCols && !visited[ny][nx]) {
+                        if (staticGrid[ny][nx] !== '#') {
+                            visited[ny][nx] = true;
+                            queue.push([ny, nx]);
+                        }
+                    }
+                }
+            }
+
+            resizeCanvas();
+            updateUI();
+        }
+
+        /**
+         * 현재 상태 스냅샷 생성 (실행 취소용)
+         */
+        function createSnapshot(snapInstant = false) {
+            return {
+                player: { x: player.x, y: player.y, dir: player.dir },
+                boxes: boxes.map(b => ({ id: b.id, x: b.x, y: b.y })),
+                moves,
+                pushes,
+                snapInstant
+            };
+        }
+
+        /**
+         * 특정 좌표에 있는 상자 검색
+         */
+        function getBoxAt(x, y) {
+            return boxes.find(b => b.x === x && b.y === y);
+        }
+
+        /**
+         * 목표 지점 위에 놓인 상자 수 계산
+         */
+        function getMatchedCount() {
+            return boxes.filter(b => staticGrid[b.y][b.x] === '.').length;
+        }
+
+        /**
+         * 파티클 생성 (목표 달성 시 반짝임 효과)
+         */
+        function spawnParticles(gx, gy, color = '#34d399', count = 14) {
+            for (let i = 0; i < count; i++) {
+                const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+                const speed = 0.04 + Math.random() * 0.09;
+                particles.push({
+                    x: gx + 0.5,
+                    y: gy + 0.5,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    life: 1.0,
+                    color,
+                    size: 3 + Math.random() * 3.5
+                });
+            }
+        }
+
+        /**
+         * 벽 충돌 시 살짝 흔들리는 시각 피드백
+         */
+        function triggerBumpEffect(dx, dy) {
+            boardContainer.style.setProperty('--bx', `${dx * 4}px`);
+            boardContainer.style.setProperty('--by', `${dy * 4}px`);
+            boardContainer.classList.remove('bump-anim');
+            void boardContainer.offsetWidth;
+            boardContainer.classList.add('bump-anim');
+        }
+
+        /**
+         * 플레이어 이동 및 상자 밀기 핵심 로직
+         */
+        function movePlayer(dirName) {
+            if (isCleared) return;
+            if (!document.getElementById('modalStages').classList.contains('hidden')) return;
+            if (!document.getElementById('modalHelp').classList.contains('hidden')) return;
+
+            const dirMap = {
+                up: [0, -1],
+                down: [0, 1],
+                left: [-1, 0],
+                right: [1, 0]
+            };
+            const [dx, dy] = dirMap[dirName];
+            player.dir = dirName;
+
+            const nx = player.x + dx;
+            const ny = player.y + dy;
+
+            // 경계 및 벽 충돌 검사
+            if (ny < 0 || ny >= gridRows || nx < 0 || nx >= gridCols || staticGrid[ny][nx] === '#') {
+                sound.bump();
+                triggerBumpEffect(dx, dy);
+                return;
+            }
+
+            const targetBox = getBoxAt(nx, ny);
+
+            if (targetBox) {
+                // 상자 뒤쪽 칸 검사
+                const bx = nx + dx;
+                const by = ny + dy;
+                if (
+                    by < 0 || by >= gridRows || bx < 0 || bx >= gridCols ||
+                    staticGrid[by][bx] === '#' || getBoxAt(bx, by)
+                ) {
+                    sound.bump();
+                    triggerBumpEffect(dx, dy);
+                    return;
+                }
+
+                // 이동 전 상태 저장
+                history.push(createSnapshot(false));
+
+                const wasOnTarget = staticGrid[targetBox.y][targetBox.x] === '.';
+                targetBox.x = bx;
+                targetBox.y = by;
+                const nowOnTarget = staticGrid[by][bx] === '.';
+
+                player.x = nx;
+                player.y = ny;
+                player.stepCount++;
+                moves++;
+                pushes++;
+
+                if (nowOnTarget && !wasOnTarget) {
+                    sound.targetGoal();
+                    spawnParticles(bx, by, '#34d399', 16);
+                } else if (nowOnTarget) {
+                    sound.targetGoal();
+                } else {
+                    sound.push();
+                }
+            } else {
+                // 빈 칸 이동
+                history.push(createSnapshot(false));
+                player.x = nx;
+                player.y = ny;
+                player.stepCount++;
+                moves++;
+                sound.step();
+            }
+
+            updateUI();
+            checkWinCondition();
+        }
+
+        /**
+         * 실행 취소 (Undo)
+         */
+        function undoMove() {
+            if (history.length === 0 || isCleared) return;
+            const snap = history.pop();
+
+            player.x = snap.player.x;
+            player.y = snap.player.y;
+            player.dir = snap.player.dir;
+            if (snap.snapInstant) {
+                player.vx = player.x;
+                player.vy = player.y;
+            }
+
+            snap.boxes.forEach(sb => {
+                const box = boxes.find(b => b.id === sb.id);
+                if (box) {
+                    box.x = sb.x;
+                    box.y = sb.y;
+                    if (snap.snapInstant) {
+                        box.vx = box.x;
+                        box.vy = box.y;
+                    }
+                }
+            });
+
+            moves = snap.moves;
+            pushes = snap.pushes;
+            sound.undo();
+            updateUI();
+        }
+
+        /**
+         * 스테이지 초기화 (실수로 눌렀을 때도 실행 취소로 복구 가능!)
+         */
+        function resetStage() {
+            if (moves === 0 && !isCleared) {
+                showToast("이미 초기 상태입니다.");
+                return;
+            }
+
+            const preResetSnapshot = createSnapshot(true);
+            loadStage(currentStageIdx);
+            // 초기화 직전 상태를 히스토리에 넣어 실수 시 한 번에 복구 지원
+            history.push(preResetSnapshot);
+            sound.undo();
+            updateUI();
+            showToast("스테이지를 초기화했습니다 (실행 취소로 복구 가능)");
+        }
+
+        /**
+         * 클리어 판정 및 최고 기록 갱신
+         */
+        function checkWinCondition() {
+            if (boxes.length > 0 && getMatchedCount() === boxes.length) {
+                isCleared = true;
+                sound.clearFanfare();
+
+                // 모든 상자 위치에서 축하 파티클 생성
+                boxes.forEach(b => spawnParticles(b.x, b.y, '#fbbf24', 20));
+
+                const stageId = STAGES[currentStageIdx].id;
+                const prev = bestRecords[stageId];
+                let isNewRecord = false;
+
+                if (
+                    !prev ||
+                    moves < prev.moves ||
+                    (moves === prev.moves && pushes < prev.pushes)
+                ) {
+                    bestRecords[stageId] = { moves, pushes };
+                    saveRecords();
+                    isNewRecord = true;
+                }
+
+                updateUI();
+
+                // 짧은 여운 후 클리어 모달 표시
+                setTimeout(() => {
+                    openClearModal(isNewRecord);
+                }, 420);
+            }
+        }
+
+        /**
+         * 상단 스탯 및 버튼 활성화 UI 업데이트
+         */
+        function updateUI() {
+            const stage = STAGES[currentStageIdx];
+            document.getElementById('stageTitleText').textContent = `스테이지 ${stage.id} / ${STAGES.length} · ${stage.name}`;
+
+            const badge = document.getElementById('difficultyBadge');
+            badge.textContent = stage.difficulty;
+            badge.className = `text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${stage.badgeClass}`;
+
+            document.getElementById('statMoves').textContent = moves;
+            document.getElementById('statPushes').textContent = pushes;
+            document.getElementById('statTargets').textContent = `${getMatchedCount()} / ${boxes.length}`;
+
+            const rec = bestRecords[stage.id];
+            document.getElementById('statBest').textContent = rec ? `${rec.moves}이동 · ${rec.pushes}밀기` : '-';
+
+            document.getElementById('btnUndo').disabled = (history.length === 0 || isCleared);
+            document.getElementById('btnPrevStage').disabled = (currentStageIdx === 0);
+            document.getElementById('btnNextStageQuick').disabled = (currentStageIdx === STAGES.length - 1);
+        }
+
+        /**
+         * ============================================================================
+         * 4. 반응형 Canvas 렌더링 및 부드러운 보간 애니메이션
+         * ============================================================================
+         */
+        let dpr = 1;
+        let tileSize = 48;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        function resizeCanvas() {
+            const rect = boardContainer.getBoundingClientRect();
+            dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+            canvas.width = Math.floor(rect.width * dpr);
+            canvas.height = Math.floor(rect.height * dpr);
+
+            const pad = 16;
+            const availW = Math.max(100, rect.width - pad * 2);
+            const availH = Math.max(100, rect.height - pad * 2);
+
+            tileSize = Math.floor(Math.min(availW / gridCols, availH / gridRows));
+            tileSize = Math.max(24, Math.min(tileSize, 64));
+
+            offsetX = Math.floor((rect.width - tileSize * gridCols) / 2);
+            offsetY = Math.floor((rect.height - tileSize * gridRows) / 2);
+        }
+
+        /**
+         * 둥근 사각형 그리기 헬퍼
+         */
+        function roundRect(ctx, x, y, w, h, r) {
+            const radius = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.arcTo(x + w, y, x + w, y + h, radius);
+            ctx.arcTo(x + w, y + h, x, y + h, radius);
+            ctx.arcTo(x, y + h, x, y, radius);
+            ctx.arcTo(x, y, x + w, y, radius);
+            ctx.closePath();
+        }
+
+        /**
+         * 벽 타일 그리기 (선명한 주황·적벽돌 / 테라코타 입체 질감)
+         */
+        function drawWall(x, y, s) {
+            // 1. 어두운 적갈색 하단 입체 그림자 베이스
+            roundRect(ctx, x + 0.5, y + 0.5, s - 1, s - 1, s * 0.13);
+            ctx.fillStyle = '#5c160e';
+            ctx.fill();
+
+            // 2. 적벽돌(테라코타) 메인 표면 그라데이션
+            const wallGrad = ctx.createLinearGradient(x, y + 1, x, y + s * 0.88);
+            wallGrad.addColorStop(0, '#ea580c');   // 따뜻한 주황빛 테라코타 상단
+            wallGrad.addColorStop(0.48, '#c2410c'); // 선명한 벽돌색 중단
+            wallGrad.addColorStop(1, '#991b1b');   // 진한 붉은 벽돌 하단
+            roundRect(ctx, x + 1.5, y + 1.5, s - 3, s * 0.85, s * 0.11);
+            ctx.fillStyle = wallGrad;
+            ctx.fill();
+
+            // 3. 개별 벽돌 톤 변화 (단조로움을 피하고 생동감 부여)
+            const midY = y + s * 0.45;
+            ctx.fillStyle = 'rgba(251, 146, 60, 0.22)';
+            ctx.fillRect(x + 3, y + 3, s * 0.46, midY - y - 4);
+            ctx.fillStyle = 'rgba(127, 29, 29, 0.24)';
+            ctx.fillRect(x + s * 0.28, midY + 1, s * 0.46, y + s * 0.84 - midY - 2);
+
+            // 4. 벽돌 줄눈(모르타르) 음각 & 밝은 시멘트 결 디테일
+            const mortarW = Math.max(1.4, s * 0.05);
+            ctx.strokeStyle = 'rgba(69, 10, 10, 0.72)';
+            ctx.lineWidth = mortarW;
+            ctx.beginPath();
+            // 가로 중앙 줄눈
+            ctx.moveTo(x + 2, midY);
+            ctx.lineTo(x + s - 2, midY);
+            // 상단 세로 줄눈
+            ctx.moveTo(x + s * 0.52, y + 2);
+            ctx.lineTo(x + s * 0.52, midY);
+            // 하단 엇갈린 세로 줄눈 2개
+            ctx.moveTo(x + s * 0.26, midY);
+            ctx.lineTo(x + s * 0.26, y + s * 0.86);
+            ctx.moveTo(x + s * 0.76, midY);
+            ctx.lineTo(x + s * 0.76, y + s * 0.86);
+            ctx.stroke();
+
+            // 줄눈 바로 아래 미세한 베벨 하이라이트
+            ctx.strokeStyle = 'rgba(254, 215, 170, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x + 3, midY + mortarW * 0.65);
+            ctx.lineTo(x + s - 3, midY + mortarW * 0.65);
+            ctx.stroke();
+
+            // 5. 타일 최상단 빛 반사 엣지
+            ctx.strokeStyle = 'rgba(253, 186, 116, 0.55)';
+            ctx.lineWidth = Math.max(1, s * 0.035);
+            ctx.beginPath();
+            ctx.moveTo(x + 4, y + 2.5);
+            ctx.lineTo(x + s - 4, y + 2.5);
+            ctx.stroke();
+        }
+
+        /**
+         * 바닥 및 목표 지점 마커 그리기
+         */
+        function drawFloorAndTarget(x, y, s, isTarget, timeSec) {
+            // 체크무늬 미세 톤 차이로 격자 가독성 향상
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(x, y, s, s);
+
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.45)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+
+            if (isTarget) {
+                const pulse = 0.86 + Math.sin(timeSec * 3.8) * 0.14;
+                const cx = x + s / 2;
+                const cy = y + s / 2;
+                const rOuter = s * 0.28 * pulse;
+
+                // 은은한 초록색 발광 원
+                const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, s * 0.38);
+                grad.addColorStop(0, 'rgba(16, 185, 129, 0.45)');
+                grad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, s * 0.38, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 다이아몬드 목표 마커
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(Math.PI / 4);
+                roundRect(ctx, -rOuter * 0.72, -rOuter * 0.72, rOuter * 1.44, rOuter * 1.44, 3);
+                ctx.fillStyle = '#10b981';
+                ctx.fill();
+                ctx.strokeStyle = '#a7f3d0';
+                ctx.lineWidth = Math.max(1.5, s * 0.045);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        /**
+         * 나무 상자 그리기 (적벽돌과 확실히 구분되는 밝은 황금 참나무 톤 & 에메랄드 안착 효과)
+         */
+        function drawBox(vx, vy, isMatched) {
+            const s = tileSize;
+            const pad = Math.max(3, s * 0.085);
+            const x = offsetX + vx * s + pad;
+            const y = offsetY + vy * s + pad;
+            const bs = s - pad * 2;
+
+            // 바닥 그림자
+            roundRect(ctx, x + 1, y + 3, bs, bs, bs * 0.16);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.fill();
+
+            // 상자 외곽 몸체 (밝은 황금 갈색 목재 vs 에메랄드)
+            roundRect(ctx, x, y, bs, bs, bs * 0.16);
+            ctx.fillStyle = isMatched ? '#059669' : '#a16207';
+            ctx.fill();
+
+            // 상자 상단 나무판/강화판
+            const innerPad = Math.max(3, bs * 0.11);
+            roundRect(ctx, x + innerPad, y + innerPad, bs - innerPad * 2, bs - innerPad * 2, bs * 0.1);
+            ctx.fillStyle = isMatched ? '#10b981' : '#eab308';
+            ctx.fill();
+
+            // X자 보강 나무 대각선
+            ctx.strokeStyle = isMatched ? 'rgba(6, 78, 59, 0.45)' : 'rgba(113, 63, 18, 0.48)';
+            ctx.lineWidth = Math.max(2, bs * 0.08);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x + innerPad * 1.5, y + innerPad * 1.5);
+            ctx.lineTo(x + bs - innerPad * 1.5, y + bs - innerPad * 1.5);
+            ctx.moveTo(x + bs - innerPad * 1.5, y + innerPad * 1.5);
+            ctx.lineTo(x + innerPad * 1.5, y + bs - innerPad * 1.5);
+            ctx.stroke();
+
+            // 테두리 프레임 하이라이트
+            roundRect(ctx, x + 1, y + 1, bs - 2, bs - 2, bs * 0.15);
+            ctx.strokeStyle = isMatched ? '#6ee7b7' : '#fef08a';
+            ctx.lineWidth = Math.max(1.5, bs * 0.045);
+            ctx.stroke();
+
+            // 목표 지점 도달 시 중앙 체크 표시 배지
+            if (isMatched) {
+                const cx = x + bs / 2;
+                const cy = y + bs / 2;
+                ctx.beginPath();
+                ctx.arc(cx, cy, bs * 0.22, 0, Math.PI * 2);
+                ctx.fillStyle = '#ecfdf5';
+                ctx.fill();
+
+                ctx.strokeStyle = '#047857';
+                ctx.lineWidth = Math.max(2, bs * 0.065);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(cx - bs * 0.1, cy + bs * 0.01);
+                ctx.lineTo(cx - bs * 0.02, cy + bs * 0.09);
+                ctx.lineTo(cx + bs * 0.11, cy - bs * 0.07);
+                ctx.stroke();
+            }
+        }
+
+        /**
+         * 귀여운 창고 관리인 캐릭터(안전모 착용) 그리기
+         */
+        function drawPlayer(vx, vy, dir, timeSec) {
+            const s = tileSize;
+            const cx = offsetX + (vx + 0.5) * s;
+            const bounce = Math.sin(timeSec * 5.2) * (s * 0.022);
+            const cy = offsetY + (vy + 0.5) * s + bounce;
+
+            // 발밑 그림자
+            ctx.beginPath();
+            ctx.ellipse(cx, offsetY + (vy + 0.82) * s, s * 0.26, s * 0.1, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
+            ctx.fill();
+
+            // 작업복 몸통
+            roundRect(ctx, cx - s * 0.22, cy - s * 0.02, s * 0.44, s * 0.3, s * 0.12);
+            ctx.fillStyle = '#3b82f6';
+            ctx.fill();
+
+            // 멜빵 디테일
+            ctx.fillStyle = '#1d4ed8';
+            ctx.fillRect(cx - s * 0.14, cy + s * 0.02, s * 0.07, s * 0.22);
+            ctx.fillRect(cx + s * 0.07, cy + s * 0.02, s * 0.07, s * 0.22);
+
+            // 얼굴
+            ctx.beginPath();
+            ctx.arc(cx, cy - s * 0.08, s * 0.22, 0, Math.PI * 2);
+            ctx.fillStyle = '#fde68a';
+            ctx.fill();
+
+            // 바라보는 방향에 따른 눈 위치 오프셋
+            let eyeDx = 0;
+            let eyeDy = 0;
+            if (dir === 'left') eyeDx = -s * 0.05;
+            if (dir === 'right') eyeDx = s * 0.05;
+            if (dir === 'up') eyeDy = -s * 0.04;
+            if (dir === 'down') eyeDy = s * 0.02;
+
+            if (dir !== 'up') {
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(cx - s * 0.07 + eyeDx, cy - s * 0.06 + eyeDy, Math.max(1.6, s * 0.038), 0, Math.PI * 2);
+                ctx.arc(cx + s * 0.07 + eyeDx, cy - s * 0.06 + eyeDy, Math.max(1.6, s * 0.038), 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 노란색 안전모 (헬멧)
+            ctx.beginPath();
+            ctx.arc(cx, cy - s * 0.14, s * 0.23, Math.PI, 0);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fill();
+
+            // 안전모 챙
+            roundRect(ctx, cx - s * 0.26, cy - s * 0.16, s * 0.52, s * 0.08, s * 0.04);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fill();
+        }
+
+        /**
+         * 메인 애니메이션 루프
+         */
+        let lastTime = performance.now();
+
+        function renderLoop(now) {
+            const dt = Math.min(0.05, (now - lastTime) / 1000);
+            lastTime = now;
+            const timeSec = now / 1000;
+
+            // 부드러운 위치 보간 (빠른 연타 입력 시에도 입력 손실 없이 자연스럽게 미끄러짐)
+            const lerpSpeed = Math.min(1, dt * 18);
+            player.vx += (player.x - player.vx) * lerpSpeed;
+            player.vy += (player.y - player.vy) * lerpSpeed;
+
+            boxes.forEach(b => {
+                b.vx += (b.x - b.vx) * lerpSpeed;
+                b.vy += (b.y - b.vy) * lerpSpeed;
+            });
+
+            ctx.save();
+            ctx.scale(dpr, dpr);
+            const viewW = canvas.width / dpr;
+            const viewH = canvas.height / dpr;
+            ctx.clearRect(0, 0, viewW, viewH);
+
+            // 1. 바닥, 목표 지점, 벽 렌더링
+            for (let r = 0; r < gridRows; r++) {
+                for (let c = 0; c < gridCols; c++) {
+                    const cell = staticGrid[r][c];
+                    const px = offsetX + c * tileSize;
+                    const py = offsetY + r * tileSize;
+
+                    if (cell === ' ' || cell === '.') {
+                        drawFloorAndTarget(px, py, tileSize, cell === '.', timeSec);
+                    } else if (cell === '#') {
+                        drawWall(px, py, tileSize);
+                    }
+                }
+            }
+
+            // 2. 상자 렌더링
+            boxes.forEach(b => {
+                const isMatched = staticGrid[b.y][b.x] === '.' &&
+                    Math.hypot(b.x - b.vx, b.y - b.vy) < 0.25;
+                drawBox(b.vx, b.vy, isMatched);
+            });
+
+            // 3. 플레이어 렌더링
+            drawPlayer(player.vx, player.vy, player.dir, timeSec);
+
+            // 4. 파티클 이펙트 업데이트 및 렌더링
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= dt * 2.1;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(offsetX + p.x * tileSize, offsetY + p.y * tileSize, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            ctx.restore();
+            requestAnimationFrame(renderLoop);
+        }
+
+        /**
+         * ============================================================================
+         * 5. 모달 제어 및 이벤트 리스너 연결
+         * ============================================================================
+         */
+        function openStagesModal() {
+            const grid = document.getElementById('stageGrid');
+            grid.innerHTML = '';
+
+            let clearedCount = 0;
+            STAGES.forEach((st, idx) => {
+                const rec = bestRecords[st.id];
+                if (rec) clearedCount++;
+                const isCurrent = idx === currentStageIdx;
+
+                const card = document.createElement('button');
+                card.className = `text-left p-3.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
+                    isCurrent
+                        ? 'bg-blue-600/25 border-blue-400 shadow-md'
+                        : 'bg-slate-900/75 border-slate-700 hover:border-slate-500 hover:bg-slate-900'
+                }`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-extrabold text-slate-400">#${st.id}</span>
+                            <span class="text-sm font-bold text-white">${st.name}</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.badgeClass}">${st.difficulty}</span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">
+                            ${rec ? `최고 기록: <strong class="text-sky-300">${rec.moves}이동 · ${rec.pushes}밀기</strong>` : '아직 클리어 기록 없음'}
+                        </div>
+                    </div>
+                    <div class="shrink-0">
+                        ${rec
+                            ? `<span class="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center text-emerald-400">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                               </span>`
+                            : `<span class="text-xs font-semibold text-slate-500 px-2 py-1 rounded-lg bg-slate-800">도전</span>`
+                        }
+                    </div>
+                `;
+
+                card.addEventListener('click', () => {
+                    closeModal('modalStages');
+                    loadStage(idx);
+                });
+                grid.appendChild(card);
+            });
+
+            document.getElementById('clearSummaryText').textContent = `클리어 진행도: ${clearedCount} / ${STAGES.length}`;
+            openModal('modalStages');
+        }
+
+        function openClearModal(isNewRecord) {
+            const badge = document.getElementById('newRecordBadge');
+            badge.style.display = isNewRecord ? 'inline-block' : 'none';
+
+            document.getElementById('clearMoves').textContent = moves;
+            document.getElementById('clearPushes').textContent = pushes;
+
+            const isLast = currentStageIdx === STAGES.length - 1;
+            const heading = document.getElementById('clearHeading');
+            const subText = document.getElementById('clearSubText');
+            const nextBtn = document.getElementById('btnNextStage');
+
+            if (isLast) {
+                heading.textContent = "전 스테이지 정복!";
+                subText.textContent = "축하합니다! 모든 창고 퍼즐을 완벽하게 해결하셨습니다!";
+                nextBtn.textContent = "스테이지 목록";
+            } else {
+                heading.textContent = `스테이지 ${STAGES[currentStageIdx].id} 클리어!`;
+                subText.textContent = `"${STAGES[currentStageIdx].name}" 퍼즐을 깔끔하게 해결했습니다.`;
+                nextBtn.textContent = "다음 스테이지";
+            }
+
+            openModal('modalClear');
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        }
+
+        /**
+         * 키보드 및 터치/버튼 이벤트 바인딩
+         */
+        function bindEvents() {
+            // 키보드 조작 (방향키, WASD, Z, R, ESC)
+            window.addEventListener('keydown', (e) => {
+                // 모달이 열려 있을 때 ESC 닫기 또는 Enter 다음 스테이지 진행
+                if (!document.getElementById('modalClear').classList.contains('hidden')) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        document.getElementById('btnNextStage').click();
+                    }
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    closeModal('modalStages');
+                    closeModal('modalHelp');
+                    return;
+                }
+
+                const key = e.key.toLowerCase();
+                if (key === 'arrowup' || key === 'w') {
+                    e.preventDefault();
+                    movePlayer('up');
+                } else if (key === 'arrowdown' || key === 's') {
+                    e.preventDefault();
+                    movePlayer('down');
+                } else if (key === 'arrowleft' || key === 'a') {
+                    e.preventDefault();
+                    movePlayer('left');
+                } else if (key === 'arrowright' || key === 'd') {
+                    e.preventDefault();
+                    movePlayer('right');
+                } else if (key === 'z' || key === 'backspace') {
+                    e.preventDefault();
+                    undoMove();
+                } else if (key === 'r' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    resetStage();
+                } else if (key === '[' && currentStageIdx > 0) {
+                    e.preventDefault();
+                    loadStage(currentStageIdx - 1);
+                } else if (key === ']' && currentStageIdx < STAGES.length - 1) {
+                    e.preventDefault();
+                    loadStage(currentStageIdx + 1);
+                }
+            });
+
+            // 화면 방향 버튼 (터치 & 마우스 클릭 모두 즉각 반응)
+            document.querySelectorAll('.dpad-btn').forEach(btn => {
+                const dir = btn.getAttribute('data-dir');
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    movePlayer(dir);
+                });
+            });
+
+            // 게임 보드 스와이프 제스처 지원 (모바일 터치 조작)
+            let touchStartX = null;
+            let touchStartY = null;
+
+            boardContainer.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+
+            boardContainer.addEventListener('touchmove', (e) => {
+                // 게임 보드 위에서 스크롤 방지
+                e.preventDefault();
+            }, { passive: false });
+
+            boardContainer.addEventListener('touchend', (e) => {
+                if (touchStartX === null || touchStartY === null) return;
+                const touch = e.changedTouches[0];
+                const dx = touch.clientX - touchStartX;
+                const dy = touch.clientY - touchStartY;
+                const absX = Math.abs(dx);
+                const absY = Math.abs(dy);
+                const threshold = 24;
+
+                if (Math.max(absX, absY) >= threshold) {
+                    if (absX > absY) {
+                        movePlayer(dx > 0 ? 'right' : 'left');
+                    } else {
+                        movePlayer(dy > 0 ? 'down' : 'up');
+                    }
+                }
+                touchStartX = null;
+                touchStartY = null;
+            }, { passive: true });
+
+            // 기능 버튼 클릭 이벤트
+            document.getElementById('btnUndo').addEventListener('click', undoMove);
+            document.getElementById('btnReset').addEventListener('click', resetStage);
+            document.getElementById('btnPrevStage').addEventListener('click', () => {
+                if (currentStageIdx > 0) loadStage(currentStageIdx - 1);
+            });
+            document.getElementById('btnNextStageQuick').addEventListener('click', () => {
+                if (currentStageIdx < STAGES.length - 1) loadStage(currentStageIdx + 1);
+            });
+            document.getElementById('btnStageSelect').addEventListener('click', openStagesModal);
+            document.getElementById('closeStagesModal').addEventListener('click', () => closeModal('modalStages'));
+
+            document.getElementById('btnHelp').addEventListener('click', () => openModal('modalHelp'));
+            document.getElementById('closeHelpModal').addEventListener('click', () => closeModal('modalHelp'));
+            document.getElementById('confirmHelpBtn').addEventListener('click', () => closeModal('modalHelp'));
+
+            // 모달 배경 클릭 시 닫기
+            ['modalStages', 'modalHelp'].forEach(id => {
+                const modalEl = document.getElementById(id);
+                modalEl.addEventListener('click', (e) => {
+                    if (e.target === modalEl) closeModal(id);
+                });
+            });
+
+            // 효과음 켜기/끄기 토글
+            document.getElementById('btnSound').addEventListener('click', () => {
+                sound.enabled = !sound.enabled;
+                document.getElementById('iconSoundOn').classList.toggle('hidden', !sound.enabled);
+                document.getElementById('iconSoundOff').classList.toggle('hidden', sound.enabled);
+                showToast(sound.enabled ? "효과음이 켜졌습니다" : "효과음이 꺼졌습니다");
+            });
+
+            // 클리어 모달 버튼
+            document.getElementById('btnReplayStage').addEventListener('click', () => {
+                closeModal('modalClear');
+                loadStage(currentStageIdx);
+            });
+
+            document.getElementById('btnNextStage').addEventListener('click', () => {
+                closeModal('modalClear');
+                if (currentStageIdx < STAGES.length - 1) {
+                    loadStage(currentStageIdx + 1);
+                } else {
+                    openStagesModal();
+                }
+            });
+
+            // 창 크기 변경 시 캔버스 반응형 재계산
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        // 윈도우 로드 완료 후 게임 초기화 및 애니메이션 루프 시작
+        window.onload = function () {
+            loadRecords();
+            bindEvents();
+            loadStage(0);
+            lastTime = performance.now();
+            requestAnimationFrame(renderLoop);
+        };
+    </script>
+</body>
+</html>

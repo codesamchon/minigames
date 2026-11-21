@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>프리미엄 오셀로 (Reversi)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: radial-gradient(circle at 50% 20%, #1e293b 0%, #090d16 100%);
+            color: #f8fafc;
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+
+        /* 보드 및 타일 스타일링 */
+        .board-frame {
+            background: linear-gradient(145deg, #2e1d0f, #1a0f07);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.85),
+                inset 0 2px 4px rgba(255, 255, 255, 0.15),
+                inset 0 -3px 6px rgba(0, 0, 0, 0.7);
+            border: 3px solid #3e2723;
+        }
+
+        .board-grid {
+            background-color: #064e3b;
+            border: 2px solid #022c22;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .board-cell {
+            position: relative;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border: 1px solid rgba(2, 44, 34, 0.65);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            transition: background-color 0.15s ease;
+            aspect-ratio: 1 / 1;
+        }
+
+        .board-cell.playable {
+            cursor: pointer;
+        }
+
+        .board-cell.playable:hover {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        /* 화점 (보드 위 4개의 기준점) */
+        .star-point::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: #022c22;
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+            box-shadow: 0 1px 0 rgba(255,255,255,0.15);
+        }
+        .star-tl::after { top: -3.5px; left: -3.5px; }
+        .star-tr::after { top: -3.5px; right: -3.5px; }
+        .star-bl::after { bottom: -3.5px; left: -3.5px; }
+        .star-br::after { bottom: -3.5px; right: -3.5px; }
+
+        /* 3D 오셀로 돌 (Disc) */
+        .disc-container {
+            width: 82%;
+            height: 82%;
+            perspective: 700px;
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .disc {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.52s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 50%;
+        }
+
+        .disc.show-black {
+            transform: rotateY(0deg);
+        }
+
+        .disc.show-white {
+            transform: rotateY(180deg);
+        }
+
+        .disc.pop-in {
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .disc-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .disc-black {
+            background: radial-gradient(circle at 32% 28%, #52525b 0%, #18181b 55%, #09090b 100%);
+            box-shadow: 
+                0 4px 7px rgba(0, 0, 0, 0.65),
+                inset 0 2px 3px rgba(255, 255, 255, 0.22),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.8);
+            border: 1px solid #27272a;
+            transform: rotateY(0deg);
+        }
+
+        .disc-white {
+            background: radial-gradient(circle at 32% 28%, #ffffff 0%, #f1f5f9 60%, #cbd5e1 100%);
+            box-shadow: 
+                0 4px 7px rgba(0, 0, 0, 0.55),
+                inset 0 2px 4px rgba(255, 255, 255, 0.9),
+                inset 0 -3px 5px rgba(100, 116, 139, 0.5);
+            border: 1px solid #e2e8f0;
+            transform: rotateY(180deg);
+        }
+
+        /* 유효한 수 표시 마커 */
+        .valid-marker {
+            width: 34%;
+            height: 34%;
+            border-radius: 50%;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68rem;
+            font-weight: 800;
+            pointer-events: none;
+            z-index: 6;
+        }
+
+        .valid-marker.black-turn {
+            background-color: rgba(15, 23, 42, 0.45);
+            border: 1.5px solid rgba(255, 255, 255, 0.28);
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .valid-marker.white-turn {
+            background-color: rgba(255, 255, 255, 0.45);
+            border: 1.5px solid rgba(15, 23, 42, 0.25);
+            color: #0f172a;
+        }
+
+        .board-cell.playable:hover .valid-marker {
+            transform: scale(1.35);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+        }
+
+        /* 힌트 하이라이트 효과 */
+        .hint-ring {
+            position: absolute;
+            inset: 4px;
+            border-radius: 50%;
+            border: 2.5px dashed #fbbf24;
+            animation: spinSlow 6s linear infinite, pulseGlow 1.5s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: 8;
+        }
+
+        @keyframes spinSlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 4px rgba(251, 191, 36, 0.4); opacity: 0.7; }
+            to { box-shadow: 0 0 16px rgba(251, 191, 36, 0.95); opacity: 1; }
+        }
+
+        /* 뒤집힐 돌 미리보기 하이라이트 */
+        .board-cell.preview-flip::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 6px;
+            border: 2px solid rgba(251, 191, 36, 0.75);
+            background-color: rgba(251, 191, 36, 0.14);
+            pointer-events: none;
+            z-index: 15;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        /* 마지막 착수 위치 표시점 */
+        .last-move-dot {
+            position: absolute;
+            width: 24%;
+            height: 24%;
+            border-radius: 50%;
+            background-color: #ef4444;
+            box-shadow: 0 0 6px #ef4444, 0 0 2px #ffffff;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 플레이어 카드 활성 상태 */
+        .score-card {
+            transition: all 0.25s ease;
+        }
+        .score-card.active-turn {
+            border-color: #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+            background-color: rgba(30, 41, 59, 0.95);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-2 sm:p-4 md:p-6 select-none">
+
+    <!-- 상단 헤더 & 컨트롤 바 -->
+    <header class="w-full max-w-4xl flex flex-wrap items-center justify-between gap-2 pb-2 sm:pb-3 border-b border-slate-800/80">
+        <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center shadow-inner">
+                <div class="w-5 h-5 rounded-full bg-gradient-to-br from-white via-slate-300 to-slate-900 border border-emerald-400"></div>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                    오셀로 <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">REVERSI</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- 빠른 설정 및 유틸리티 버튼 -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <button id="btn-settings" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs sm:text-sm font-semibold border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-sliders text-emerald-400"></i>
+                <span>모드/설정</span>
+            </button>
+            <button id="btn-rules" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 border border-slate-700 transition shadow-sm" title="게임 규칙">
+                <i class="fa-solid fa-circle-question text-sm sm:text-base"></i>
+            </button>
+            <button id="btn-sound" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-400 border border-slate-700 transition shadow-sm" title="효과음 켜기/끄기">
+                <i id="sound-icon" class="fa-solid fa-volume-high text-sm sm:text-base"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 게임 컨테이너 -->
+    <main class="w-full max-w-4xl flex-1 flex flex-col lg:flex-row items-center justify-center gap-3 sm:gap-5 my-auto py-2">
+        
+        <!-- 좌측/상단: 스코어보드 및 게임 상태 패널 -->
+        <section class="w-full max-w-[460px] lg:w-72 flex flex-col gap-2.5 sm:gap-3 order-1 lg:order-1">
+            
+            <!-- 현재 모드 배지 -->
+            <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-400">
+                <span id="mode-display" class="font-medium text-slate-300"><i class="fa-solid fa-robot text-emerald-400 mr-1.5"></i>1P vs AI (보통)</span>
+                <span id="move-counter" class="font-mono text-slate-400">턴: 1</span>
+            </div>
+
+            <!-- 흑 / 백 점수판 카드 -->
+            <div class="grid grid-cols-2 lg:grid-cols-1 gap-2.5">
+                <!-- 흑돌 (Black - 선공) -->
+                <div id="card-black" class="score-card active-turn relative overflow-hidden rounded-2xl bg-slate-800/75 border-2 border-slate-700/80 p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 sm:gap-3">
+                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-full disc-black flex-shrink-0 relative flex items-center justify-center">
+                            <span id="badge-turn-black" class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-2 ring-slate-900 animate-ping"></span>
+                            <span id="badge-dot-black" class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-2 ring-slate-900"></span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-sm sm:text-base text-white">흑 (선공)</span>
+                            </div>
+                            <p id="label-player-black" class="text-xs text-emerald-400 font-medium">플레이어</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="score-black" class="text-2xl sm:text-3xl font-extrabold font-mono text-white">2</span>
+                        <span class="block text-[10px] text-slate-400">개의 돌</span>
+                    </div>
+                </div>
+
+                <!-- 백돌 (White - 후공) -->
+                <div id="card-white" class="score-card relative overflow-hidden rounded-2xl bg-slate-800/75 border-2 border-slate-700/80 p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5 sm:gap-3">
+                        <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-full disc-white flex-shrink-0 relative flex items-center justify-center">
+                            <span id="badge-turn-white" class="hidden absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-2 ring-slate-900 animate-ping"></span>
+                            <span id="badge-dot-white" class="hidden absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 ring-2 ring-slate-900"></span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-sm sm:text-base text-white">백 (후공)</span>
+                            </div>
+                            <p id="label-player-white" class="text-xs text-slate-400 font-medium">AI (보통)</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="score-white" class="text-2xl sm:text-3xl font-extrabold font-mono text-white">2</span>
+                        <span class="block text-[10px] text-slate-400">개의 돌</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 점유율 프로그레스 바 -->
+            <div class="w-full bg-slate-900 p-2 rounded-xl border border-slate-800">
+                <div class="flex justify-between text-[11px] font-semibold text-slate-400 mb-1 px-0.5">
+                    <span id="ratio-black-text">흑 50%</span>
+                    <span id="valid-moves-count" class="text-emerald-400">착수 가능: 4곳</span>
+                    <span id="ratio-white-text">백 50%</span>
+                </div>
+                <div class="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden flex p-0.5 gap-0.5">
+                    <div id="bar-black" class="h-full bg-zinc-950 border border-zinc-600 rounded-l-full transition-all duration-300" style="width: 50%"></div>
+                    <div id="bar-white" class="h-full bg-slate-100 rounded-r-full transition-all duration-300" style="width: 50%"></div>
+                </div>
+            </div>
+
+            <!-- 상태 알림 배너 -->
+            <div id="status-banner" class="px-3.5 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-between text-xs sm:text-sm">
+                <div class="flex items-center gap-2">
+                    <span id="status-indicator" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                    <span id="status-text" class="font-semibold text-slate-100">흑의 차례입니다. 원하는 곳에 두세요.</span>
+                </div>
+            </div>
+
+            <!-- 데스크톱 전용 액션 버튼 그룹 -->
+            <div class="hidden lg:grid grid-cols-3 gap-2 pt-1">
+                <button id="btn-undo-desktop" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none active:scale-95 border border-slate-700 text-slate-200 font-semibold text-xs flex flex-col items-center gap-1 transition shadow">
+                    <i class="fa-solid fa-rotate-left text-amber-400 text-base"></i>
+                    <span>무르기</span>
+                </button>
+                <button id="btn-hint-desktop" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none active:scale-95 border border-slate-700 text-slate-200 font-semibold text-xs flex flex-col items-center gap-1 transition shadow">
+                    <i class="fa-solid fa-lightbulb text-yellow-400 text-base"></i>
+                    <span>전략 힌트</span>
+                </button>
+                <button id="btn-restart-desktop" class="py-2.5 px-3 rounded-xl bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 border border-emerald-500/40 text-white font-semibold text-xs flex flex-col items-center gap-1 transition shadow">
+                    <i class="fa-solid fa-arrows-rotate text-base"></i>
+                    <span>새 게임</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 우측/중앙: 8x8 오셀로 보드 영역 -->
+        <section class="w-full max-w-[460px] flex flex-col items-center order-2 lg:order-2 relative">
+            <div class="board-frame w-full p-2 sm:p-3.5 rounded-2xl sm:rounded-3xl relative">
+                
+                <!-- 상단 알파벳 좌표 (A ~ H) -->
+                <div class="grid grid-cols-8 pl-4 sm:pl-5 mb-1 text-[10px] sm:text-xs font-mono font-bold text-amber-200/60 text-center">
+                    <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span>
+                </div>
+
+                <div class="flex items-center">
+                    <!-- 좌측 숫자 좌표 (1 ~ 8) -->
+                    <div class="flex flex-col justify-around pr-1.5 sm:pr-2 text-[10px] sm:text-xs font-mono font-bold text-amber-200/60 text-center self-stretch">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span>
+                    </div>
+
+                    <!-- 실제 8x8 그리드 -->
+                    <div id="board-grid" class="board-grid w-full grid grid-cols-8 rounded-lg overflow-hidden relative">
+                        <!-- 자바스크립트로 64개 셀 생성 -->
+                    </div>
+                </div>
+
+                <!-- 턴 패스 알림 토스트 오버레이 -->
+                <div id="toast-overlay" class="pointer-events-none opacity-0 transition-opacity duration-300 absolute inset-0 flex items-center justify-center z-30 p-4">
+                    <div class="bg-slate-950/95 border-2 border-amber-400/80 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transform scale-95 transition-transform duration-300" id="toast-box">
+                        <i class="fa-solid fa-forward-step text-amber-400 text-xl"></i>
+                        <div>
+                            <p id="toast-title" class="font-bold text-sm sm:text-base text-amber-300">턴 넘김</p>
+                            <p id="toast-desc" class="text-xs sm:text-sm text-slate-200">유효한 수가 없어 턴을 넘깁니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 모바일/태블릿 전용 하단 액션 컨트롤 버튼 -->
+            <div class="w-full grid grid-cols-3 gap-2.5 mt-3 lg:hidden">
+                <button id="btn-undo-mobile" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none active:scale-95 border border-slate-700 text-slate-200 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow">
+                    <i class="fa-solid fa-rotate-left text-amber-400"></i>
+                    <span>무르기</span>
+                </button>
+                <button id="btn-hint-mobile" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none active:scale-95 border border-slate-700 text-slate-200 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow">
+                    <i class="fa-solid fa-lightbulb text-yellow-400"></i>
+                    <span>힌트</span>
+                </button>
+                <button id="btn-restart-mobile" class="py-2.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 active:scale-95 border border-emerald-500/40 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>새 게임</span>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- 하단 푸터 안내 -->
+    <footer class="w-full max-w-4xl text-center py-1 text-[11px] text-slate-500 flex items-center justify-center gap-4">
+        <span><i class="fa-solid fa-circle text-[7px] text-red-500 mr-1 align-middle"></i>빨간 점: 최근 착수 위치</span>
+        <span><i class="fa-regular fa-circle-dot text-[9px] text-emerald-400 mr-1 align-middle"></i>숫자 표시: 뒤집히는 돌 개수</span>
+    </footer>
+
+    <!-- 모달 1: 게임 모드 및 난이도 설정 -->
+    <div id="modal-settings" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h2 class="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-gamepad text-emerald-400"></i> 게임 설정
+                </h2>
+                <button id="close-settings" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 my-5">
+                <!-- 대전 모드 선택 -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">대전 모드</label>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button type="button" data-mode="ai" class="mode-btn py-3 px-3 rounded-2xl border-2 border-emerald-500 bg-emerald-500/15 text-white font-bold text-sm flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-robot text-emerald-400"></i> 1P vs AI
+                        </button>
+                        <button type="button" data-mode="2p" class="mode-btn py-3 px-3 rounded-2xl border-2 border-slate-700 bg-slate-800/60 text-slate-300 font-bold text-sm flex items-center justify-center gap-2 transition">
+                            <i class="fa-solid fa-user-group text-sky-400"></i> 2인 로컬 대전
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI 전용 옵션 영역 -->
+                <div id="ai-options-group" class="space-y-4">
+                    <!-- AI 난이도 -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">AI 난이도</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" data-diff="easy" class="diff-btn py-2.5 px-2 rounded-xl border-2 border-slate-700 bg-slate-800/60 text-slate-300 font-bold text-xs sm:text-sm transition flex flex-col items-center gap-0.5">
+                                <span>쉬움</span>
+                                <span class="text-[10px] font-normal text-slate-400">입문용</span>
+                            </button>
+                            <button type="button" data-diff="medium" class="diff-btn py-2.5 px-2 rounded-xl border-2 border-emerald-500 bg-emerald-500/15 text-white font-bold text-xs sm:text-sm transition flex flex-col items-center gap-0.5">
+                                <span>보통</span>
+                                <span class="text-[10px] font-normal text-emerald-300">가중치 전술</span>
+                            </button>
+                            <button type="button" data-diff="hard" class="diff-btn py-2.5 px-2 rounded-xl border-2 border-slate-700 bg-slate-800/60 text-slate-300 font-bold text-xs sm:text-sm transition flex flex-col items-center gap-0.5">
+                                <span>어려움</span>
+                                <span class="text-[10px] font-normal text-slate-400">미니맥스 탐색</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 플레이어 돌 색상 선택 -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">내 돌 색상 (흑이 선공)</label>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <button type="button" data-color="1" class="color-btn py-2.5 px-3 rounded-xl border-2 border-emerald-500 bg-emerald-500/15 text-white font-bold text-sm flex items-center justify-center gap-2.5 transition">
+                                <span class="w-5 h-5 rounded-full disc-black inline-block"></span>
+                                <span>흑돌 (선공)</span>
+                            </button>
+                            <button type="button" data-color="-1" class="color-btn py-2.5 px-3 rounded-xl border-2 border-slate-700 bg-slate-800/60 text-slate-300 font-bold text-sm flex items-center justify-center gap-2.5 transition">
+                                <span class="w-5 h-5 rounded-full disc-white inline-block"></span>
+                                <span>백돌 (후공)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 보조 표시 옵션 -->
+                <div class="pt-1">
+                    <label class="flex items-center justify-between p-3 rounded-xl bg-slate-800/70 border border-slate-700/80 cursor-pointer">
+                        <span class="text-xs sm:text-sm font-semibold text-slate-200">유효한 수에 뒤집힐 돌 개수 표시</span>
+                        <input type="checkbox" id="toggle-flip-count" checked class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex gap-2.5">
+                <button id="apply-settings" class="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-900/50 transition">
+                    설정 적용 및 새 게임 시작
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 2: 게임 종료 결과 화면 -->
+    <div id="modal-gameover" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl animate-[fadeIn_0.25s_ease-out]">
+            <div id="winner-icon-wrap" class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-3xl text-emerald-400">
+                <i id="winner-icon" class="fa-solid fa-trophy"></i>
+            </div>
+            
+            <h2 id="gameover-title" class="text-2xl font-extrabold text-white mb-1">흑 승리!</h2>
+            <p id="gameover-subtitle" class="text-xs sm:text-sm text-slate-400 mb-5">치열한 두뇌 싸움 끝에 승리했습니다.</p>
+
+            <!-- 최종 스코어 비교 박스 -->
+            <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800">
+                <div class="flex flex-col items-center p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                    <div class="w-8 h-8 rounded-full disc-black mb-1.5"></div>
+                    <span class="text-xs text-slate-400 font-semibold">흑 (Black)</span>
+                    <span id="final-score-black" class="text-2xl font-extrabold font-mono text-white mt-0.5">34</span>
+                </div>
+                <div class="flex flex-col items-center p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                    <div class="w-8 h-8 rounded-full disc-white mb-1.5"></div>
+                    <span class="text-xs text-slate-400 font-semibold">백 (White)</span>
+                    <span id="final-score-white" class="text-2xl font-extrabold font-mono text-white mt-0.5">30</span>
+                </div>
+            </div>
+
+            <div class="flex gap-2.5">
+                <button id="btn-gameover-settings" class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm border border-slate-700 transition">
+                    설정 변경
+                </button>
+                <button id="btn-play-again" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-900/50 transition">
+                    다시 시작
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 3: 오셀로 게임 규칙 설명 -->
+    <div id="modal-rules" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-book-open text-emerald-400"></i> 오셀로(리버시) 규칙 및 전략
+                </h2>
+                <button id="close-rules" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="space-y-3 my-4 text-xs sm:text-sm text-slate-300 leading-relaxed max-h-[65vh] overflow-y-auto pr-1">
+                <div class="p-3 rounded-xl bg-slate-800/60 border border-slate-700/70">
+                    <h3 class="font-bold text-emerald-400 mb-1">1. 기본 진행</h3>
+                    <p>8×8 보드 중앙에 흑돌 2개, 백돌 2개를 교차 배치한 상태로 시작하며, <strong>흑돌이 항상 먼저</strong> 시작합니다.</p>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-800/60 border border-slate-700/70">
+                    <h3 class="font-bold text-emerald-400 mb-1">2. 돌 뒤집기 (포위 규칙)</h3>
+                    <p>자신의 돌과 새로 놓는 돌 사이에 상대방의 돌이 가로, 세로, 대각선 방향 중 하나로 빈칸 없이 끼어 있으면 그 상대 돌들을 모두 자신의 색으로 뒤집습니다. <strong>최소 1개 이상의 상대 돌을 뒤집을 수 있는 곳</strong>에만 둘 수 있습니다.</p>
+                </div>
+                <div class="p-3 rounded-xl bg-slate-800/60 border border-slate-700/70">
+                    <h3 class="font-bold text-emerald-400 mb-1">3. 턴 패스 및 종료</h3>
+                    <p>둘 수 있는 유효한 자리가 없다면 자동으로 턴이 상대에게 넘어갑니다. 양쪽 모두 더 이상 둘 곳이 없거나 보드 64칸이 모두 채워지면 게임이 종료되며, 돌이 더 많은 쪽이 승리합니다.</p>
+                </div>
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                    <h3 class="font-bold text-amber-300 mb-1"><i class="fa-solid fa-star mr-1"></i> 핵심 필승 전략</h3>
+                    <p>네 모서리(귀: A1, H1, A8, H8)에 놓인 돌은 절대 뒤집히지 않는 가장 강력한 요충지입니다. 반대로 모서리 바로 안쪽 대각선 자리(X-스퀘어)는 상대에게 모서리를 내줄 위험이 크므로 주의하세요!</p>
+                </div>
+            </div>
+            <button id="confirm-rules" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition">
+                확인했습니다
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Web Audio API 기반 효과음 합성기 (외부 오디오 파일 불필요)
+         */
+        class SoundEffects {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+
+            initContext() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) this.ctx = new AudioContext();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playPlace() {
+                if (!this.enabled) return;
+                this.initContext();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(190, now);
+                osc.frequency.exponentialRampToValueAtTime(75, now + 0.08);
+
+                gain.gain.setValueAtTime(0.28, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.085);
+            }
+
+            playFlip(delayMs = 0) {
+                if (!this.enabled) return;
+                this.initContext();
+                if (!this.ctx) return;
+
+                setTimeout(() => {
+                    if (!this.enabled || !this.ctx) return;
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(340, now);
+                    osc.frequency.exponentialRampToValueAtTime(620, now + 0.055);
+
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.065);
+                }, delayMs);
+            }
+
+            playPass() {
+                if (!this.enabled) return;
+                this.initContext();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.setValueAtTime(220, now + 0.12);
+
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playWin() {
+                if (!this.enabled) return;
+                this.initContext();
+                if (!this.ctx) return;
+
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const now = this.ctx.currentTime + idx * 0.1;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.26);
+                });
+            }
+        }
+
+        /**
+         * 오셀로 상수 및 전략 가중치 테이블
+         */
+        const BLACK = 1;
+        const WHITE = -1;
+        const EMPTY = 0;
+
+        const DIRECTIONS = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [0, -1],           [0, 1],
+            [1, -1],  [1, 0],  [1, 1]
+        ];
+
+        // 오셀로 표준 위치 전략 가중치 (모서리 최고점, X-square 및 C-square 감점)
+        const POSITIONAL_WEIGHTS = [
+            [ 120, -25,  20,   5,   5,  20, -25, 120],
+            [ -25, -45,  -5,  -5,  -5,  -5, -45, -25],
+            [  20,  -5,  15,   3,   3,  15,  -5,  20],
+            [   5,  -5,   3,   3,   3,   3,  -5,   5],
+            [   5,  -5,   3,   3,   3,   3,  -5,   5],
+            [  20,  -5,  15,   3,   3,  15,  -5,  20],
+            [ -25, -45,  -5,  -5,  -5,  -5, -45, -25],
+            [ 120, -25,  20,   5,   5,  20, -25, 120]
+        ];
+
+        /**
+         * 메인 게임 클래스
+         */
+        class OthelloGame {
+            constructor() {
+                this.sound = new SoundEffects();
+                this.board = [];
+                this.currentPlayer = BLACK;
+                this.gameMode = 'ai';        // 'ai' 또는 '2p'
+                this.aiDifficulty = 'medium'; // 'easy', 'medium', 'hard'
+                this.humanColor = BLACK;      // 1P 모드에서 사용자의 돌 색
+                this.showFlipCount = true;
+
+                this.history = [];
+                this.lastMove = null;
+                this.hintMove = null;
+                this.isAnimating = false;
+                this.isGameOver = false;
+                this.aiTimeout = null;
+
+                this.initDOM();
+                this.bindEvents();
+                this.startNewGame();
+            }
+
+            initDOM() {
+                this.gridEl = document.getElementById('board-grid');
+                this.cells = [];
+                this.gridEl.innerHTML = '';
+
+                // 8x8 격자 생성
+                for (let r = 0; r < 8; r++) {
+                    this.cells[r] = [];
+                    for (let c = 0; c < 8; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'board-cell flex items-center justify-center';
+                        cell.dataset.r = r;
+                        cell.dataset.c = c;
+
+                        // 보드 위 4개의 화점 표시
+                        if (r === 2 && c === 2) cell.classList.add('star-point', 'star-tl');
+                        if (r === 2 && c === 6) cell.classList.add('star-point', 'star-tr');
+                        if (r === 6 && c === 2) cell.classList.add('star-point', 'star-bl');
+                        if (r === 6 && c === 6) cell.classList.add('star-point', 'star-br');
+
+                        this.gridEl.appendChild(cell);
+                        this.cells[r][c] = cell;
+                    }
+                }
+            }
+
+            bindEvents() {
+                // 보드 클릭 및 호버 이벤트
+                this.gridEl.addEventListener('click', (e) => {
+                    const cell = e.target.closest('.board-cell');
+                    if (!cell) return;
+                    const r = parseInt(cell.dataset.r, 10);
+                    const c = parseInt(cell.dataset.c, 10);
+                    this.handleUserClick(r, c);
+                });
+
+                this.gridEl.addEventListener('mouseover', (e) => {
+                    const cell = e.target.closest('.board-cell');
+                    if (!cell) return;
+                    const r = parseInt(cell.dataset.r, 10);
+                    const c = parseInt(cell.dataset.c, 10);
+                    this.highlightPreviewFlips(r, c);
+                });
+
+                this.gridEl.addEventListener('mouseleave', () => {
+                    this.clearPreviewFlips();
+                });
+
+                // 무르기, 힌트, 새 게임 버튼 (데스크톱 + 모바일 동기화)
+                ['btn-undo-desktop', 'btn-undo-mobile'].forEach(id => {
+                    document.getElementById(id).addEventListener('click', () => this.undoMove());
+                });
+
+                ['btn-hint-desktop', 'btn-hint-mobile'].forEach(id => {
+                    document.getElementById(id).addEventListener('click', () => this.showHint());
+                });
+
+                ['btn-restart-desktop', 'btn-restart-mobile'].forEach(id => {
+                    document.getElementById(id).addEventListener('click', () => this.startNewGame());
+                });
+
+                // 사운드 토글
+                document.getElementById('btn-sound').addEventListener('click', () => {
+                    this.sound.enabled = !this.sound.enabled;
+                    const icon = document.getElementById('sound-icon');
+                    const btn = document.getElementById('btn-sound');
+                    if (this.sound.enabled) {
+                        icon.className = 'fa-solid fa-volume-high text-sm sm:text-base';
+                        btn.classList.replace('text-slate-400', 'text-emerald-400');
+                        this.sound.playPlace();
+                    } else {
+                        icon.className = 'fa-solid fa-volume-xmark text-sm sm:text-base';
+                        btn.classList.replace('text-emerald-400', 'text-slate-400');
+                    }
+                });
+
+                // 설정 모달 열기/닫기 및 옵션 선택
+                const modalSettings = document.getElementById('modal-settings');
+                document.getElementById('btn-settings').addEventListener('click', () => {
+                    this.syncSettingsModalUI();
+                    modalSettings.classList.remove('hidden');
+                });
+                document.getElementById('close-settings').addEventListener('click', () => {
+                    modalSettings.classList.add('hidden');
+                });
+
+                // 모드 선택 버튼
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.tempMode = btn.dataset.mode;
+                        this.updateModalOptionStyles();
+                    });
+                });
+
+                // 난이도 선택 버튼
+                document.querySelectorAll('.diff-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.tempDiff = btn.dataset.diff;
+                        this.updateModalOptionStyles();
+                    });
+                });
+
+                // 색상 선택 버튼
+                document.querySelectorAll('.color-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.tempColor = parseInt(btn.dataset.color, 10);
+                        this.updateModalOptionStyles();
+                    });
+                });
+
+                // 설정 적용 및 시작
+                document.getElementById('apply-settings').addEventListener('click', () => {
+                    this.gameMode = this.tempMode || this.gameMode;
+                    this.aiDifficulty = this.tempDiff || this.aiDifficulty;
+                    this.humanColor = this.tempColor || this.humanColor;
+                    this.showFlipCount = document.getElementById('toggle-flip-count').checked;
+                    modalSettings.classList.add('hidden');
+                    this.startNewGame();
+                });
+
+                // 게임 오버 모달 버튼
+                const modalGameOver = document.getElementById('modal-gameover');
+                document.getElementById('btn-play-again').addEventListener('click', () => {
+                    modalGameOver.classList.add('hidden');
+                    this.startNewGame();
+                });
+                document.getElementById('btn-gameover-settings').addEventListener('click', () => {
+                    modalGameOver.classList.add('hidden');
+                    this.syncSettingsModalUI();
+                    modalSettings.classList.remove('hidden');
+                });
+
+                // 규칙 모달
+                const modalRules = document.getElementById('modal-rules');
+                document.getElementById('btn-rules').addEventListener('click', () => modalRules.classList.remove('hidden'));
+                document.getElementById('close-rules').addEventListener('click', () => modalRules.classList.add('hidden'));
+                document.getElementById('confirm-rules').addEventListener('click', () => modalRules.classList.add('hidden'));
+            }
+
+            syncSettingsModalUI() {
+                this.tempMode = this.gameMode;
+                this.tempDiff = this.aiDifficulty;
+                this.tempColor = this.humanColor;
+                document.getElementById('toggle-flip-count').checked = this.showFlipCount;
+                this.updateModalOptionStyles();
+            }
+
+            updateModalOptionStyles() {
+                const activeClass = ['border-emerald-500', 'bg-emerald-500/15', 'text-white'];
+                const inactiveClass = ['border-slate-700', 'bg-slate-800/60', 'text-slate-300'];
+
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    const isActive = btn.dataset.mode === this.tempMode;
+                    btn.classList.remove(...(isActive ? inactiveClass : activeClass));
+                    btn.classList.add(...(isActive ? activeClass : inactiveClass));
+                });
+
+                const aiGroup = document.getElementById('ai-options-group');
+                aiGroup.style.display = this.tempMode === 'ai' ? 'block' : 'none';
+
+                document.querySelectorAll('.diff-btn').forEach(btn => {
+                    const isActive = btn.dataset.diff === this.tempDiff;
+                    btn.classList.remove(...(isActive ? inactiveClass : activeClass));
+                    btn.classList.add(...(isActive ? activeClass : inactiveClass));
+                });
+
+                document.querySelectorAll('.color-btn').forEach(btn => {
+                    const isActive = parseInt(btn.dataset.color, 10) === this.tempColor;
+                    btn.classList.remove(...(isActive ? inactiveClass : activeClass));
+                    btn.classList.add(...(isActive ? activeClass : inactiveClass));
+                });
+            }
+
+            startNewGame() {
+                if (this.aiTimeout) {
+                    clearTimeout(this.aiTimeout);
+                    this.aiTimeout = null;
+                }
+
+                // 8x8 빈 보드 초기화 및 중앙 4개 돌 배치
+                this.board = Array.from({ length: 8 }, () => Array(8).fill(EMPTY));
+                this.board[3][3] = WHITE;
+                this.board[3][4] = BLACK;
+                this.board[4][3] = BLACK;
+                this.board[4][4] = WHITE;
+
+                this.currentPlayer = BLACK; // 오셀로는 항상 흑이 선공
+                this.history = [];
+                this.lastMove = null;
+                this.hintMove = null;
+                this.isAnimating = false;
+                this.isGameOver = false;
+
+                document.getElementById('modal-gameover').classList.add('hidden');
+                this.clearBoardDOM();
+                this.renderBoard(true);
+                this.updateHUD();
+
+                // 만약 1P 모드에서 사용자가 백돌(후공)을 선택한 경우 AI가 먼저 착수
+                if (this.isAITurn()) {
+                    this.triggerAIMove();
+                }
+            }
+
+            clearBoardDOM() {
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        this.cells[r][c].innerHTML = '';
+                        this.cells[r][c].classList.remove('playable', 'preview-flip');
+                    }
+                }
+            }
+
+            isAITurn() {
+                return !this.isGameOver && this.gameMode === 'ai' && this.currentPlayer !== this.humanColor;
+            }
+
+            /**
+             * 특정 보드 상태에서 (r, c)에 player가 착수했을 때 뒤집히는 돌들의 좌표 배열 반환
+             */
+            getFlipsForMove(board, r, c, player) {
+                if (board[r][c] !== EMPTY) return [];
+                const opponent = -player;
+                const totalFlips = [];
+
+                for (const [dr, dc] of DIRECTIONS) {
+                    let nr = r + dr;
+                    let nc = c + dc;
+                    const lineFlips = [];
+
+                    while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === opponent) {
+                        lineFlips.push([nr, nc]);
+                        nr += dr;
+                        nc += dc;
+                    }
+
+                    if (lineFlips.length > 0 && nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === player) {
+                        totalFlips.push(...lineFlips);
+                    }
+                }
+
+                return totalFlips;
+            }
+
+            /**
+             * 현재 플레이어의 모든 유효한 수 목록 반환: [{ r, c, flips }]
+             */
+            getValidMoves(board, player) {
+                const moves = [];
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const flips = this.getFlipsForMove(board, r, c, player);
+                        if (flips.length > 0) {
+                            moves.push({ r, c, flips });
+                        }
+                    }
+                }
+                return moves;
+            }
+
+            handleUserClick(r, c) {
+                if (this.isGameOver || this.isAnimating || this.isAITurn()) return;
+
+                const flips = this.getFlipsForMove(this.board, r, c, this.currentPlayer);
+                if (flips.length === 0) return;
+
+                this.executeMove(r, c, flips);
+            }
+
+            executeMove(r, c, flips) {
+                this.isAnimating = true;
+                this.hintMove = null;
+                this.clearPreviewFlips();
+
+                // 히스토리에 현재 상태 저장 (무르기용)
+                this.history.push({
+                    board: this.board.map(row => [...row]),
+                    currentPlayer: this.currentPlayer,
+                    lastMove: this.lastMove ? { ...this.lastMove } : null
+                });
+
+                // 착수 적용
+                const player = this.currentPlayer;
+                this.board[r][c] = player;
+                for (const [fr, fc] of flips) {
+                    this.board[fr][fc] = player;
+                }
+                this.lastMove = { r, c };
+
+                // 사운드 재생
+                this.sound.playPlace();
+                flips.forEach((_, idx) => this.sound.playFlip(70 + idx * 45));
+
+                // 보드 시각적 업데이트
+                this.renderBoard(false, { placed: [r, c], flipped: flips });
+
+                const animDuration = Math.min(350 + flips.length * 40, 620);
+                setTimeout(() => {
+                    this.isAnimating = false;
+                    this.advanceTurn();
+                }, animDuration);
+            }
+
+            advanceTurn() {
+                const nextPlayer = -this.currentPlayer;
+                const nextMoves = this.getValidMoves(this.board, nextPlayer);
+
+                if (nextMoves.length > 0) {
+                    this.currentPlayer = nextPlayer;
+                    this.renderBoard();
+                    this.updateHUD();
+
+                    if (this.isAITurn()) {
+                        this.triggerAIMove();
+                    }
+                    return;
+                }
+
+                // 상대방이 둘 수 있는 곳이 없는 경우 -> 현재 플레이어가 다시 둘 수 있는지 확인
+                const currentMoves = this.getValidMoves(this.board, this.currentPlayer);
+                if (currentMoves.length > 0) {
+                    const skippedName = nextPlayer === BLACK ? '흑(Black)' : '백(White)';
+                    this.sound.playPass();
+                    this.showToast(`${skippedName} 패스!`, `유효한 수가 없어 턴을 넘깁니다.`);
+                    this.renderBoard();
+                    this.updateHUD();
+
+                    if (this.isAITurn()) {
+                        this.triggerAIMove(900);
+                    }
+                    return;
+                }
+
+                // 양쪽 모두 둘 곳이 없는 경우 게임 종료
+                this.endGame();
+            }
+
+            /**
+             * 보드 DOM 렌더링 및 3D 돌 회전 처리
+             */
+            renderBoard(isInitial = false, moveInfo = null) {
+                const validMoves = (!this.isGameOver && !this.isAITurn() && !this.isAnimating)
+                    ? this.getValidMoves(this.board, this.currentPlayer)
+                    : [];
+
+                const validMap = new Map();
+                validMoves.forEach(m => validMap.set(`${m.r},${m.c}`, m.flips));
+
+                const flippedSet = new Set();
+                if (moveInfo && moveInfo.flipped) {
+                    moveInfo.flipped.forEach(([fr, fc]) => flippedSet.add(`${fr},${fc}`));
+                }
+
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const cell = this.cells[r][c];
+                        const val = this.board[r][c];
+                        const key = `${r},${c}`;
+
+                        // 기존 가이드 마커, 힌트, 최근 착수점 정리
+                        cell.querySelectorAll('.valid-marker, .hint-ring, .last-move-dot').forEach(el => el.remove());
+                        cell.classList.remove('playable');
+
+                        let discContainer = cell.querySelector('.disc-container');
+
+                        if (val !== EMPTY) {
+                            const targetClass = val === BLACK ? 'show-black' : 'show-white';
+
+                            if (!discContainer) {
+                                // 새로운 돌 생성
+                                discContainer = document.createElement('div');
+                                discContainer.className = 'disc-container';
+                                const disc = document.createElement('div');
+                                disc.className = `disc ${targetClass} ${!isInitial ? 'pop-in' : ''}`;
+                                disc.innerHTML = `
+                                    <div class="disc-face disc-black"></div>
+                                    <div class="disc-face disc-white"></div>
+                                `;
+                                discContainer.appendChild(disc);
+                                cell.appendChild(discContainer);
+                            } else {
+                                // 이미 존재하는 돌의 면 회전 (뒤집기 애니메이션)
+                                const disc = discContainer.querySelector('.disc');
+                                disc.classList.remove('pop-in');
+                                if (!disc.classList.contains(targetClass)) {
+                                    if (flippedSet.has(key)) {
+                                        // 순차적 입체 뒤집기 딜레이 부여
+                                        const idx = moveInfo.flipped.findIndex(([fr, fc]) => fr === r && fc === c);
+                                        disc.style.transitionDelay = `${idx * 38}ms`;
+                                    } else {
+                                        disc.style.transitionDelay = '0ms';
+                                    }
+                                    disc.classList.remove('show-black', 'show-white');
+                                    disc.classList.add(targetClass);
+                                } else {
+                                    disc.style.transitionDelay = '0ms';
+                                }
+                            }
+
+                            // 마지막 착수 위치에 빨간 점 표시
+                            if (this.lastMove && this.lastMove.r === r && this.lastMove.c === c) {
+                                const dot = document.createElement('div');
+                                dot.className = 'last-move-dot';
+                                cell.appendChild(dot);
+                            }
+                        } else {
+                            // 빈 칸인 경우 남아있는 돌 제거 (무르기 실행 시)
+                            if (discContainer) discContainer.remove();
+
+                            // 유효한 착수 가능 위치 표시
+                            if (validMap.has(key)) {
+                                cell.classList.add('playable');
+                                const marker = document.createElement('div');
+                                const turnClass = this.currentPlayer === BLACK ? 'black-turn' : 'white-turn';
+                                marker.className = `valid-marker ${turnClass}`;
+                                if (this.showFlipCount) {
+                                    marker.textContent = validMap.get(key).length;
+                                }
+                                cell.appendChild(marker);
+                            }
+
+                            // 힌트 표시
+                            if (this.hintMove && this.hintMove.r === r && this.hintMove.c === c) {
+                                const ring = document.createElement('div');
+                                ring.className = 'hint-ring';
+                                cell.appendChild(ring);
+                            }
+                        }
+                    }
+                }
+            }
+
+            highlightPreviewFlips(r, c) {
+                this.clearPreviewFlips();
+                if (this.isGameOver || this.isAnimating || this.isAITurn()) return;
+
+                const flips = this.getFlipsForMove(this.board, r, c, this.currentPlayer);
+                for (const [fr, fc] of flips) {
+                    this.cells[fr][fc].classList.add('preview-flip');
+                }
+            }
+
+            clearPreviewFlips() {
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        this.cells[r][c].classList.remove('preview-flip');
+                    }
+                }
+            }
+
+            /**
+             * 점수, 턴 표시, 상태 메시지 등 상단/측면 HUD 업데이트
+             */
+            updateHUD() {
+                let blackScore = 0;
+                let whiteScore = 0;
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        if (this.board[r][c] === BLACK) blackScore++;
+                        else if (this.board[r][c] === WHITE) whiteScore++;
+                    }
+                }
+
+                document.getElementById('score-black').textContent = blackScore;
+                document.getElementById('score-white').textContent = whiteScore;
+
+                const total = blackScore + whiteScore || 1;
+                const blackPct = Math.round((blackScore / total) * 100);
+                const whitePct = 100 - blackPct;
+
+                document.getElementById('bar-black').style.width = `${blackPct}%`;
+                document.getElementById('bar-white').style.width = `${whitePct}%`;
+                document.getElementById('ratio-black-text').textContent = `흑 ${blackPct}%`;
+                document.getElementById('ratio-white-text').textContent = `백 ${whitePct}%`;
+
+                // 턴 수 및 착수 가능 개수
+                const turnCount = this.history.length + 1;
+                document.getElementById('move-counter').textContent = `턴: ${turnCount}`;
+                const validMoves = this.getValidMoves(this.board, this.currentPlayer);
+                document.getElementById('valid-moves-count').textContent = `착수 가능: ${validMoves.length}곳`;
+
+                // 모드 및 플레이어 라벨 업데이트
+                const diffNames = { easy: '쉬움', medium: '보통', hard: '어려움' };
+                const modeEl = document.getElementById('mode-display');
+                const labelBlack = document.getElementById('label-player-black');
+                const labelWhite = document.getElementById('label-player-white');
+
+                if (this.gameMode === 'ai') {
+                    modeEl.innerHTML = `<i class="fa-solid fa-robot text-emerald-400 mr-1.5"></i>1P vs AI (${diffNames[this.aiDifficulty]})`;
+                    if (this.humanColor === BLACK) {
+                        labelBlack.textContent = '플레이어 (나)';
+                        labelBlack.className = 'text-xs text-emerald-400 font-medium';
+                        labelWhite.textContent = `AI (${diffNames[this.aiDifficulty]})`;
+                        labelWhite.className = 'text-xs text-slate-400 font-medium';
+                    } else {
+                        labelBlack.textContent = `AI (${diffNames[this.aiDifficulty]})`;
+                        labelBlack.className = 'text-xs text-slate-400 font-medium';
+                        labelWhite.textContent = '플레이어 (나)';
+                        labelWhite.className = 'text-xs text-emerald-400 font-medium';
+                    }
+                } else {
+                    modeEl.innerHTML = `<i class="fa-solid fa-user-group text-sky-400 mr-1.5"></i>2인 로컬 대전`;
+                    labelBlack.textContent = '플레이어 1';
+                    labelBlack.className = 'text-xs text-emerald-400 font-medium';
+                    labelWhite.textContent = '플레이어 2';
+                    labelWhite.className = 'text-xs text-sky-400 font-medium';
+                }
+
+                // 활성 턴 카드 하이라이트
+                const cardBlack = document.getElementById('card-black');
+                const cardWhite = document.getElementById('card-white');
+                const pingBlack = document.getElementById('badge-turn-black');
+                const dotBlack = document.getElementById('badge-dot-black');
+                const pingWhite = document.getElementById('badge-turn-white');
+                const dotWhite = document.getElementById('badge-dot-white');
+
+                if (this.currentPlayer === BLACK) {
+                    cardBlack.classList.add('active-turn');
+                    cardWhite.classList.remove('active-turn');
+                    pingBlack.classList.remove('hidden');
+                    dotBlack.classList.remove('hidden');
+                    pingWhite.classList.add('hidden');
+                    dotWhite.classList.add('hidden');
+                } else {
+                    cardWhite.classList.add('active-turn');
+                    cardBlack.classList.remove('active-turn');
+                    pingWhite.classList.remove('hidden');
+                    dotWhite.classList.remove('hidden');
+                    pingBlack.classList.add('hidden');
+                    dotBlack.classList.add('hidden');
+                }
+
+                // 상태 배너 텍스트
+                const statusText = document.getElementById('status-text');
+                const statusInd = document.getElementById('status-indicator');
+                if (this.isAITurn()) {
+                    statusText.textContent = `AI(${this.currentPlayer === BLACK ? '흑' : '백'})가 최적의 수를 계산 중입니다...`;
+                    statusInd.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping';
+                } else {
+                    const turnName = this.currentPlayer === BLACK ? '흑(선공)' : '백(후공)';
+                    statusText.textContent = `${turnName}의 차례입니다. 표시된 곳에 돌을 두세요.`;
+                    statusInd.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
+                }
+
+                // 버튼 활성화 상태 제어
+                const canUndo = this.history.length > 0 && !this.isAnimating && !this.isAITurn();
+                const canHint = !this.isGameOver && !this.isAnimating && !this.isAITurn();
+
+                ['btn-undo-desktop', 'btn-undo-mobile'].forEach(id => {
+                    document.getElementById(id).disabled = !canUndo;
+                });
+                ['btn-hint-desktop', 'btn-hint-mobile'].forEach(id => {
+                    document.getElementById(id).disabled = !canHint;
+                });
+            }
+
+            /**
+             * 무르기 (Undo): AI 모드에서는 플레이어 차례까지 되돌림
+             */
+            undoMove() {
+                if (this.history.length === 0 || this.isAnimating || this.isAITurn()) return;
+
+                this.hintMove = null;
+                this.isGameOver = false;
+
+                if (this.gameMode === 'ai') {
+                    // 플레이어의 직전 턴 상태로 돌아갈 때까지 pop
+                    let targetState = null;
+                    while (this.history.length > 0) {
+                        const state = this.history.pop();
+                        if (state.currentPlayer === this.humanColor) {
+                            targetState = state;
+                            break;
+                        }
+                    }
+                    if (targetState) {
+                        this.board = targetState.board;
+                        this.currentPlayer = targetState.currentPlayer;
+                        this.lastMove = targetState.lastMove;
+                    } else {
+                        this.startNewGame();
+                        return;
+                    }
+                } else {
+                    // 2인 대전에서는 직전 1수만 무르기
+                    const prevState = this.history.pop();
+                    this.board = prevState.board;
+                    this.currentPlayer = prevState.currentPlayer;
+                    this.lastMove = prevState.lastMove;
+                }
+
+                this.sound.playPlace();
+                this.renderBoard();
+                this.updateHUD();
+            }
+
+            /**
+             * 힌트 기능: 미니맥스 평가 함수를 사용해 현재 플레이어에게 가장 유리한 수 추천
+             */
+            showHint() {
+                if (this.isGameOver || this.isAnimating || this.isAITurn()) return;
+                const moves = this.getValidMoves(this.board, this.currentPlayer);
+                if (moves.length === 0) return;
+
+                const bestMove = this.findBestMoveMinimax(this.board, this.currentPlayer, 4);
+                if (bestMove) {
+                    this.hintMove = { r: bestMove.r, c: bestMove.c };
+                    this.renderBoard();
+                    const colChar = String.fromCharCode(65 + bestMove.c);
+                    const rowNum = bestMove.r + 1;
+                    document.getElementById('status-text').textContent = `💡 추천 전략 위치: ${colChar}${rowNum} (돌 ${bestMove.flips.length}개 뒤집기)`;
+                }
+            }
+
+            /**
+             * AI 턴 실행 및 난이도별 알고리즘
+             */
+            triggerAIMove(delay = 520) {
+                this.updateHUD();
+                this.aiTimeout = setTimeout(() => {
+                    if (this.isGameOver) return;
+                    const validMoves = this.getValidMoves(this.board, this.currentPlayer);
+                    if (validMoves.length === 0) {
+                        this.advanceTurn();
+                        return;
+                    }
+
+                    let chosenMove = null;
+                    if (this.aiDifficulty === 'easy') {
+                        chosenMove = this.getEasyAIMove(validMoves);
+                    } else if (this.aiDifficulty === 'medium') {
+                        chosenMove = this.getMediumAIMove(this.board, this.currentPlayer, validMoves);
+                    } else {
+                        chosenMove = this.findBestMoveMinimax(this.board, this.currentPlayer, 5);
+                    }
+
+                    if (!chosenMove) chosenMove = validMoves[0];
+                    this.executeMove(chosenMove.r, chosenMove.c, chosenMove.flips);
+                }, delay);
+            }
+
+            // 쉬움 AI: 약간의 랜덤성 + 단순 돌 개수 위주
+            getEasyAIMove(validMoves) {
+                if (Math.random() < 0.65) {
+                    return validMoves[Math.floor(Math.random() * validMoves.length)];
+                }
+                return validMoves.reduce((best, cur) => (cur.flips.length > best.flips.length ? cur : best), validMoves[0]);
+            }
+
+            // 보통 AI: 위치 가중치 테이블 + 뒤집는 돌 개수 조합
+            getMediumAIMove(board, player, validMoves) {
+                let bestScore = -Infinity;
+                let bestMove = validMoves[0];
+
+                for (const move of validMoves) {
+                    const posScore = POSITIONAL_WEIGHTS[move.r][move.c];
+                    const flipScore = move.flips.length * 2;
+                    const jitter = (Math.random() - 0.5) * 6;
+                    const totalScore = posScore + flipScore + jitter;
+
+                    if (totalScore > bestScore) {
+                        bestScore = totalScore;
+                        bestMove = move;
+                    }
+                }
+                return bestMove;
+            }
+
+            // 어려움 AI & 힌트: Alpha-Beta 가지치기가 적용된 미니맥스(Minimax) 탐색
+            findBestMoveMinimax(board, player, depth) {
+                const validMoves = this.getValidMoves(board, player);
+                if (validMoves.length === 0) return null;
+                if (validMoves.length === 1) return validMoves[0];
+
+                // 탐색 효율을 위해 가중치가 높은 순서로 정렬
+                validMoves.sort((a, b) => POSITIONAL_WEIGHTS[b.r][b.c] - POSITIONAL_WEIGHTS[a.r][a.c]);
+
+                let bestMove = validMoves[0];
+                let bestValue = -Infinity;
+                let alpha = -Infinity;
+                const beta = Infinity;
+
+                for (const move of validMoves) {
+                    const nextBoard = this.simulateMove(board, move.r, move.c, move.flips, player);
+                    const evalValue = this.minimax(nextBoard, depth - 1, alpha, beta, false, player);
+
+                    if (evalValue > bestValue) {
+                        bestValue = evalValue;
+                        bestMove = move;
+                    }
+                    alpha = Math.max(alpha, evalValue);
+                }
+
+                return bestMove;
+            }
+
+            simulateMove(board, r, c, flips, player) {
+                const copy = board.map(row => [...row]);
+                copy[r][c] = player;
+                for (const [fr, fc] of flips) {
+                    copy[fr][fc] = player;
+                }
+                return copy;
+            }
+
+            minimax(board, depth, alpha, beta, isMaximizing, aiPlayer) {
+                const currentTurnPlayer = isMaximizing ? aiPlayer : -aiPlayer;
+                const moves = this.getValidMoves(board, currentTurnPlayer);
+
+                if (depth === 0) {
+                    return this.evaluateBoardState(board, aiPlayer);
+                }
+
+                if (moves.length === 0) {
+                    // 현재 턴 플레이어가 둘 수 없으면 상대방도 둘 수 없는지 확인
+                    const otherMoves = this.getValidMoves(board, -currentTurnPlayer);
+                    if (otherMoves.length === 0) {
+                        // 게임 종료 상태 평가
+                        return this.evaluateTerminalBoard(board, aiPlayer);
+                    }
+                    // 턴 패스 후 계속 탐색
+                    return this.minimax(board, depth - 1, alpha, beta, !isMaximizing, aiPlayer);
+                }
+
+                if (isMaximizing) {
+                    let maxEval = -Infinity;
+                    for (const move of moves) {
+                        const nextBoard = this.simulateMove(board, move.r, move.c, move.flips, currentTurnPlayer);
+                        const evaluation = this.minimax(nextBoard, depth - 1, alpha, beta, false, aiPlayer);
+                        maxEval = Math.max(maxEval, evaluation);
+                        alpha = Math.max(alpha, evaluation);
+                        if (beta <= alpha) break;
+                    }
+                    return maxEval;
+                } else {
+                    let minEval = Infinity;
+                    for (const move of moves) {
+                        const nextBoard = this.simulateMove(board, move.r, move.c, move.flips, currentTurnPlayer);
+                        const evaluation = this.minimax(nextBoard, depth - 1, alpha, beta, true, aiPlayer);
+                        minEval = Math.min(minEval, evaluation);
+                        beta = Math.min(beta, evaluation);
+                        if (beta <= alpha) break;
+                    }
+                    return minEval;
+                }
+            }
+
+            /**
+             * 보드 전략 가치 평가 함수:
+             * 1. 위치 가중치 (모서리 점유 및 위험 지역 회피)
+             * 2. 기동성 (Mobility: 착수 가능한 수의 차이)
+             * 3. 후반부 돌 개수 우위
+             */
+            evaluateBoardState(board, aiPlayer) {
+                const opponent = -aiPlayer;
+                let positionalScore = 0;
+                let aiDiscs = 0;
+                let oppDiscs = 0;
+
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const cell = board[r][c];
+                        if (cell === aiPlayer) {
+                            positionalScore += POSITIONAL_WEIGHTS[r][c];
+                            aiDiscs++;
+                        } else if (cell === opponent) {
+                            positionalScore -= POSITIONAL_WEIGHTS[r][c];
+                            oppDiscs++;
+                        }
+                    }
+                }
+
+                // 모서리가 이미 점유된 경우 인접 칸의 페널티 완화 보정
+                const corners = [[0, 0], [0, 7], [7, 0], [7, 7]];
+                for (const [cr, cc] of corners) {
+                    if (board[cr][cc] === aiPlayer) positionalScore += 45;
+                    else if (board[cr][cc] === opponent) positionalScore -= 45;
+                }
+
+                // 기동성(Mobility) 점수
+                const aiMoves = this.getValidMoves(board, aiPlayer).length;
+                const oppMoves = this.getValidMoves(board, opponent).length;
+                const mobilityScore = (aiMoves - oppMoves) * 12;
+
+                // 종반전(돌이 52개 이상 찬 경우)에는 실제 돌 개수 비중 확대
+                const totalDiscs = aiDiscs + oppDiscs;
+                const discDiffScore = totalDiscs > 52 ? (aiDiscs - oppDiscs) * 18 : (aiDiscs - oppDiscs) * 2;
+
+                return positionalScore + mobilityScore + discDiffScore;
+            }
+
+            evaluateTerminalBoard(board, aiPlayer) {
+                let diff = 0;
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        if (board[r][c] === aiPlayer) diff++;
+                        else if (board[r][c] === -aiPlayer) diff--;
+                    }
+                }
+                if (diff > 0) return 10000 + diff * 100;
+                if (diff < 0) return -10000 + diff * 100;
+                return 0;
+            }
+
+            showToast(title, desc) {
+                const overlay = document.getElementById('toast-overlay');
+                const box = document.getElementById('toast-box');
+                document.getElementById('toast-title').textContent = title;
+                document.getElementById('toast-desc').textContent = desc;
+
+                overlay.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+                box.classList.add('scale-100');
+
+                if (this.toastTimer) clearTimeout(this.toastTimer);
+                this.toastTimer = setTimeout(() => {
+                    overlay.classList.add('opacity-0');
+                    box.classList.remove('scale-100');
+                    box.classList.add('scale-95');
+                }, 1700);
+            }
+
+            endGame() {
+                this.isGameOver = true;
+                this.renderBoard();
+                this.updateHUD();
+                this.sound.playWin();
+
+                let blackScore = 0;
+                let whiteScore = 0;
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        if (this.board[r][c] === BLACK) blackScore++;
+                        else if (this.board[r][c] === WHITE) whiteScore++;
+                    }
+                }
+
+                document.getElementById('final-score-black').textContent = blackScore;
+                document.getElementById('final-score-white').textContent = whiteScore;
+
+                const titleEl = document.getElementById('gameover-title');
+                const subEl = document.getElementById('gameover-subtitle');
+                const iconEl = document.getElementById('winner-icon');
+
+                if (blackScore > whiteScore) {
+                    titleEl.textContent = '흑(Black) 승리!';
+                    if (this.gameMode === 'ai') {
+                        subEl.textContent = this.humanColor === BLACK
+                            ? `축하합니다! AI를 ${blackScore} 대 ${whiteScore}(으)로 이겼습니다.`
+                            : `AI(흑)가 ${blackScore} 대 ${whiteScore}(으)로 승리했습니다.`;
+                    } else {
+                        subEl.textContent = `플레이어 1(흑)이 ${blackScore - whiteScore}개 차이로 승리했습니다!`;
+                    }
+                    iconEl.className = 'fa-solid fa-trophy text-amber-400';
+                } else if (whiteScore > blackScore) {
+                    titleEl.textContent = '백(White) 승리!';
+                    if (this.gameMode === 'ai') {
+                        subEl.textContent = this.humanColor === WHITE
+                            ? `축하합니다! AI를 ${whiteScore} 대 ${blackScore}(으)로 이겼습니다.`
+                            : `AI(백)가 ${whiteScore} 대 ${blackScore}(으)로 승리했습니다.`;
+                    } else {
+                        subEl.textContent = `플레이어 2(백)가 ${whiteScore - blackScore}개 차이로 승리했습니다!`;
+                    }
+                    iconEl.className = 'fa-solid fa-trophy text-amber-400';
+                } else {
+                    titleEl.textContent = '무승부!';
+                    subEl.textContent = `${blackScore} 대 ${whiteScore}, 팽팽한 명승부였습니다!`;
+                    iconEl.className = 'fa-solid fa-handshake text-emerald-400';
+                }
+
+                document.getElementById('status-text').textContent = `게임 종료 — 최종 스코어 흑 ${blackScore} : 백 ${whiteScore}`;
+
+                setTimeout(() => {
+                    document.getElementById('modal-gameover').classList.remove('hidden');
+                }, 450);
+            }
+        }
+
+        // 페이지 로드 완료 시 게임 시작
+        window.onload = function () {
+            window.othelloGame = new OthelloGame();
+        };
+    </script>
+</body>
+</html>

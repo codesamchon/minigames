@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>지뢰 찾기 (Windows Classic Minesweeper)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 기본 리셋 및 클래식 윈도우 굴림/타호마 폰트 */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --win-gray: #c0c0c0;
+            --win-light: #ffffff;
+            --win-med: #dfdfdf;
+            --win-dark: #808080;
+            --win-black: #000000;
+            --cell-size: 24px;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+            background-color: #008080; /* Windows 95/98 클래식 청록색 바탕화면 */
+            font-family: 'Gulim', '굴림', 'Dotum', '돋움', Tahoma, sans-serif;
+            font-size: 12px;
+            color: #000000;
+            overflow-x: hidden;
+        }
+
+        /* 흑백(클래식 단색) 모드 필터 */
+        .bw-mode {
+            filter: grayscale(100%) contrast(1.18);
+        }
+
+        /* 클래식 윈도우 외곽 프레임 */
+        .win-frame {
+            background-color: var(--win-gray);
+            border-top: 2px solid var(--win-med);
+            border-left: 2px solid var(--win-med);
+            border-right: 2px solid var(--win-black);
+            border-bottom: 2px solid var(--win-black);
+            box-shadow: inset 1px 1px 0 var(--win-light), inset -1px -1px 0 var(--win-dark), 4px 6px 18px rgba(0,0,0,0.42);
+        }
+
+        /* 타이틀 바 (네이비 블루 그라데이션) */
+        .win-titlebar {
+            background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+            color: #ffffff;
+            font-weight: bold;
+            padding: 3px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.2px;
+        }
+
+        /* 윈도우 입체 버튼 */
+        .win-btn {
+            background-color: var(--win-gray);
+            border-top: 2px solid var(--win-light);
+            border-left: 2px solid var(--win-light);
+            border-right: 2px solid var(--win-black);
+            border-bottom: 2px solid var(--win-black);
+            box-shadow: inset -1px -1px 0 var(--win-dark);
+            color: #000;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .win-btn:active, .win-btn.pressed {
+            border-top: 1px solid var(--win-dark);
+            border-left: 1px solid var(--win-dark);
+            border-right: 1px solid var(--win-dark);
+            border-bottom: 1px solid var(--win-dark);
+            box-shadow: inset 1px 1px 0 var(--win-dark);
+            padding-top: 2px;
+            padding-left: 2px;
+        }
+
+        /* 타이틀바 작은 창 제어 버튼 */
+        .win-ctrl-btn {
+            width: 16px;
+            height: 14px;
+            background-color: var(--win-gray);
+            border-top: 1px solid var(--win-light);
+            border-left: 1px solid var(--win-light);
+            border-right: 1px solid var(--win-black);
+            border-bottom: 1px solid var(--win-black);
+            box-shadow: inset -1px -1px 0 var(--win-dark);
+            color: #000;
+            font-size: 10px;
+            font-weight: bold;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .win-ctrl-btn:active {
+            border-top: 1px solid var(--win-black);
+            border-left: 1px solid var(--win-black);
+            border-right: 1px solid var(--win-light);
+            border-bottom: 1px solid var(--win-light);
+            box-shadow: none;
+        }
+
+        /* 안쪽으로 움푹 들어간 3D 베벨 (상단 전광판 및 지뢰밭 테두리) */
+        .win-bevel-sunken-thick {
+            border-top: 3px solid var(--win-dark);
+            border-left: 3px solid var(--win-dark);
+            border-right: 3px solid var(--win-light);
+            border-bottom: 3px solid var(--win-light);
+            background-color: var(--win-gray);
+        }
+
+        .win-bevel-sunken-thin {
+            border-top: 1px solid var(--win-dark);
+            border-left: 1px solid var(--win-dark);
+            border-right: 1px solid var(--win-light);
+            border-bottom: 1px solid var(--win-light);
+        }
+
+        /* 바깥쪽으로 튀어나온 게임 내부 보드 외곽선 */
+        .win-board-outer {
+            background-color: var(--win-gray);
+            border-top: 3px solid var(--win-light);
+            border-left: 3px solid var(--win-light);
+            border-right: 3px solid var(--win-dark);
+            border-bottom: 3px solid var(--win-dark);
+            padding: 9px;
+        }
+
+        /* 상단 메뉴바 및 드롭다운 메뉴 */
+        .menubar {
+            background-color: var(--win-gray);
+            padding: 1px 4px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            position: relative;
+            border-bottom: 1px solid #b5b5b5;
+        }
+
+        .menu-trigger {
+            padding: 2px 6px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            position: relative;
+        }
+        .menu-trigger:hover {
+            border-top: 1px solid var(--win-light);
+            border-left: 1px solid var(--win-light);
+            border-right: 1px solid var(--win-dark);
+            border-bottom: 1px solid var(--win-dark);
+        }
+        .menu-trigger.open {
+            border-top: 1px solid var(--win-dark);
+            border-left: 1px solid var(--win-dark);
+            border-right: 1px solid var(--win-light);
+            border-bottom: 1px solid var(--win-light);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 175px;
+            background-color: var(--win-gray);
+            border-top: 1px solid var(--win-med);
+            border-left: 1px solid var(--win-med);
+            border-right: 2px solid var(--win-black);
+            border-bottom: 2px solid var(--win-black);
+            box-shadow: inset 1px 1px 0 var(--win-light), inset -1px -1px 0 var(--win-dark), 2px 2px 6px rgba(0,0,0,0.35);
+            padding: 2px;
+            z-index: 200;
+            display: none;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            width: 100%;
+            text-align: left;
+            padding: 3px 10px 3px 22px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #000;
+            background: transparent;
+            border: none;
+            font-size: 12px;
+        }
+        .dropdown-item:hover {
+            background-color: #000080;
+            color: #ffffff;
+        }
+        .dropdown-check {
+            position: absolute;
+            left: 6px;
+            font-weight: bold;
+        }
+        .dropdown-sep {
+            height: 0;
+            border-top: 1px solid var(--win-dark);
+            border-bottom: 1px solid var(--win-light);
+            margin: 3px 2px;
+        }
+
+        /* 7-세그먼트 LED 카운터 박스 */
+        .led-panel {
+            background-color: #000000;
+            border-top: 1px solid var(--win-dark);
+            border-left: 1px solid var(--win-dark);
+            border-right: 1px solid var(--win-light);
+            border-bottom: 1px solid var(--win-light);
+            padding: 2px 3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        /* 지뢰밭 그리드 */
+        .mine-grid {
+            display: grid;
+            grid-template-columns: repeat(var(--cols, 9), var(--cell-size));
+            grid-template-rows: repeat(var(--rows, 9), var(--cell-size));
+            background-color: var(--win-gray);
+            touch-action: manipulation;
+        }
+
+        /* 개별 지뢰 타일 */
+        .mine-cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-family: 'Arial Black', 'Impact', 'Tahoma', sans-serif;
+            font-weight: 900;
+            font-size: calc(var(--cell-size) * 0.64);
+            line-height: 1;
+            cursor: default;
+        }
+
+        /* 닫힌 타일: 클래식 볼록 3D 베벨 */
+        .mine-cell.unrevealed {
+            background-color: var(--win-gray);
+            border-top: 3px solid var(--win-light);
+            border-left: 3px solid var(--win-light);
+            border-right: 3px solid var(--win-dark);
+            border-bottom: 3px solid var(--win-dark);
+        }
+
+        /* 마우스로 누르고 있는 상태(Peek) 또는 열린 타일: 평평한 회색 + 1px 진회색 격자선 */
+        .mine-cell.revealed,
+        .mine-cell.pressed-peek {
+            background-color: var(--win-gray);
+            border-top: 1px solid var(--win-dark);
+            border-left: 1px solid var(--win-dark);
+            border-right: none;
+            border-bottom: none;
+        }
+
+        /* 폭발한 지뢰 칸: 순수 빨간색 배경 (#FF0000) */
+        .mine-cell.exploded {
+            background-color: #ff0000 !important;
+            border-top: 1px solid var(--win-dark);
+            border-left: 1px solid var(--win-dark);
+        }
+
+        /* 오리지널 Windows 지뢰 찾기 숫자 1~8 공식 색상 */
+        .num-1 { color: #0000ff; } /* 파랑 */
+        .num-2 { color: #008000; } /* 초록 */
+        .num-3 { color: #ff0000; } /* 빨강 */
+        .num-4 { color: #000080; } /* 남색 */
+        .num-5 { color: #800000; } /* 밤색 */
+        .num-6 { color: #008080; } /* 청록 */
+        .num-7 { color: #000000; } /* 검정 */
+        .num-8 { color: #808080; } /* 회색 */
+
+        /* 클래식 입력창 */
+        .win-input {
+            background: #ffffff;
+            border-top: 1px solid var(--win-dark);
+            border-left: 1px solid var(--win-dark);
+            border-right: 1px solid var(--win-light);
+            border-bottom: 1px solid var(--win-light);
+            box-shadow: inset 1px 1px 0 #000000;
+            padding: 2px 5px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        /* 모달 백드롭 */
+        .win-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.25);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .win-modal-backdrop.open {
+            display: flex;
+        }
+
+        /* 스크롤바 최소화 */
+        .classic-scroll::-webkit-scrollbar {
+            height: 12px;
+            width: 12px;
+        }
+        .classic-scroll::-webkit-scrollbar-track {
+            background: #dfdfdf;
+        }
+        .classic-scroll::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-right: 1px solid #000;
+            border-bottom: 1px solid #000;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-2 sm:p-4">
+
+    <!-- 클래식 Windows 지뢰 찾기 메인 프로그램 창 -->
+    <div id="winmine-window" class="win-frame inline-flex flex-col max-w-full">
+
+        <!-- 1. 네이비 그라데이션 타이틀바 -->
+        <header class="win-titlebar select-none">
+            <div class="flex items-center gap-1.5 pl-0.5">
+                <!-- 클래식 지뢰 픽셀 아이콘 SVG -->
+                <svg width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges" class="shrink-0">
+                    <rect x="0" y="0" width="16" height="16" fill="#c0c0c0"/>
+                    <rect x="7" y="2" width="2" height="12" fill="#000"/>
+                    <rect x="2" y="7" width="12" height="2" fill="#000"/>
+                    <rect x="4" y="4" width="8" height="8" fill="#000"/>
+                    <rect x="3" y="3" width="2" height="2" fill="#000"/>
+                    <rect x="11" y="3" width="2" height="2" fill="#000"/>
+                    <rect x="3" y="11" width="2" height="2" fill="#000"/>
+                    <rect x="11" y="11" width="2" height="2" fill="#000"/>
+                    <rect x="5" y="5" width="2" height="2" fill="#ffffff"/>
+                </svg>
+                <span class="text-[12px] tracking-tight">지뢰 찾기</span>
+            </div>
+            <div class="flex items-center gap-0.5">
+                <button id="btn-win-min" type="button" title="최소화" class="win-ctrl-btn">_</button>
+                <button id="btn-win-zoom" type="button" title="칸 크기 확대/축소 전환" class="win-ctrl-btn">□</button>
+                <button id="btn-win-close" type="button" title="새 게임" class="win-ctrl-btn">×</button>
+            </div>
+        </header>
+
+        <!-- 2. 클래식 메뉴바: 게임(G) / 도움말(H) -->
+        <nav class="menubar select-none">
+            <!-- 게임(G) 드롭다운 -->
+            <div class="relative">
+                <div id="trigger-game" class="menu-trigger"><u>게임</u>(G)</div>
+                <div id="dropdown-game" class="dropdown-menu">
+                    <button type="button" data-action="new" class="dropdown-item">
+                        <span>새 게임(N)</span>
+                        <span class="text-[11px] opacity-80 ml-4">F2</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button type="button" data-diff="beginner" class="dropdown-item">
+                        <span class="dropdown-check" id="chk-beginner">✓</span>
+                        <span>초급(B)</span>
+                    </button>
+                    <button type="button" data-diff="intermediate" class="dropdown-item">
+                        <span class="dropdown-check" id="chk-intermediate"></span>
+                        <span>중급(I)</span>
+                    </button>
+                    <button type="button" data-diff="expert" class="dropdown-item">
+                        <span class="dropdown-check" id="chk-expert"></span>
+                        <span>고급(E)</span>
+                    </button>
+                    <button type="button" data-action="custom" class="dropdown-item">
+                        <span class="dropdown-check" id="chk-custom"></span>
+                        <span>사용자 지정(C)...</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button type="button" data-action="toggle-marks" class="dropdown-item">
+                        <span class="dropdown-check" id="chk-marks">✓</span>
+                        <span>표시(?) 사용(M)</span>
+                    </button>
+                    <button type="button" data-action="toggle-color" class="dropdown-item">
+                        <span class="dropdown-check" id="chk-color">✓</span>
+                        <span>컬러(L)</span>
+                    </button>
+                    <button type="button" data-action="toggle-sound" class="dropdown-item">
+                        <span class="dropdown-check" id="chk-sound">✓</span>
+                        <span>소리(S)</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button type="button" data-action="best-times" class="dropdown-item">
+                        <span>최고 기록(T)...</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 도움말(H) 드롭다운 -->
+            <div class="relative">
+                <div id="trigger-help" class="menu-trigger"><u>도움말</u>(H)</div>
+                <div id="dropdown-help" class="dropdown-menu">
+                    <button type="button" data-action="help-howto" class="dropdown-item">
+                        <span>목차 및 조작법(C)</span>
+                        <span class="text-[11px] opacity-80 ml-4">F1</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button type="button" data-action="help-about" class="dropdown-item">
+                        <span>지뢰 찾기 정보(A)...</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 우측 빠른 난이도 전환 미니 버튼 (편의성) -->
+            <div class="ml-auto flex items-center gap-1 pr-0.5">
+                <button type="button" id="quick-zoom-out" title="칸 작게" class="win-btn w-5 h-5 text-[11px] font-bold leading-none">−</button>
+                <button type="button" id="quick-zoom-in" title="칸 크게" class="win-btn w-5 h-5 text-[11px] font-bold leading-none">+</button>
+            </div>
+        </nav>
+
+        <!-- 3. 지뢰 찾기 본체 보드 영역 -->
+        <main class="win-board-outer max-w-full flex flex-col items-center">
+
+            <!-- 상단 전광판 박스 (남은 지뢰 LED / 노란 스마일 버튼 / 경과 시간 LED) -->
+            <div class="win-bevel-sunken-thick w-full px-2 py-1.5 mb-2.5 flex items-center justify-between gap-3">
+                <!-- 좌측: 남은 지뢰 수 3자리 7-세그먼트 LED -->
+                <div id="led-mines" class="led-panel" aria-label="남은 지뢰 수"></div>
+
+                <!-- 중앙: 클래식 노란 스마일 리셋 버튼 -->
+                <button id="btn-smiley" type="button" title="새 게임(F2)" class="win-btn w-[30px] h-[30px] p-0 shrink-0">
+                    <span id="smiley-svg-wrap" class="w-[22px] h-[22px] flex items-center justify-center pointer-events-none"></span>
+                </button>
+
+                <!-- 우측: 경과 시간 3자리 7-세그먼트 LED -->
+                <div id="led-timer" class="led-panel" aria-label="경과 시간"></div>
+            </div>
+
+            <!-- 하단 지뢰밭 영역 (창 중앙 대칭 정렬 및 큰 화면 가로 스크롤 지원) -->
+            <div class="classic-scroll max-w-[calc(100vw-44px)] overflow-auto w-full">
+                <div class="win-bevel-sunken-thick w-fit mx-auto">
+                    <div id="mine-grid" class="mine-grid" oncontextmenu="return false;"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 4. 하단 클래식 보조 상태줄 (지뢰밭 너비를 넘지 않도록 고정해 좌우 여백 100% 대칭 유지) -->
+        <footer class="bg-[#c0c0c0] px-2 pb-2 pt-0.5 w-0 min-w-full flex flex-col gap-1 text-[11px]">
+            <!-- 터치 기기 및 원버튼 조작을 위한 클래식 대칭 토글 버튼 -->
+            <div class="flex items-center justify-center gap-1.5 w-full">
+                <button id="btn-touch-dig" type="button" class="win-btn pressed flex-1 py-0.5 text-[11px] font-bold">
+                    ⛏ 열기
+                </button>
+                <button id="btn-touch-flag" type="button" class="win-btn flex-1 py-0.5 text-[11px]">
+                    🚩 깃발
+                </button>
+            </div>
+            <div id="status-hint" class="win-bevel-sunken-thin px-1.5 py-0.5 w-full text-center truncate text-[#222]" title="좌클릭: 열기 · 우클릭: 깃발/? · 숫자(또는 좌+우 동시 클릭): 주변 자동 열기">
+                좌클릭: 열기 · 우클릭: 깃발 · 동시클릭: 주변열기
+            </div>
+        </footer>
+    </div>
+
+    <!-- ==========================================
+         대화상자 1: 사용자 지정 필드 (Custom Field)
+         ========================================== -->
+    <div id="modal-custom" class="win-modal-backdrop">
+        <div class="win-frame w-[270px] p-1">
+            <div class="win-titlebar mb-2">
+                <span>사용자 지정 필드</span>
+                <button type="button" data-close="modal-custom" class="win-ctrl-btn">×</button>
+            </div>
+            <div class="p-2.5 flex items-center justify-between gap-3">
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="inp-rows">높이(H):</label>
+                        <input id="inp-rows" type="number" min="9" max="24" value="9" class="win-input w-16">
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="inp-cols">너비(W):</label>
+                        <input id="inp-cols" type="number" min="9" max="30" value="9" class="win-input w-16">
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="inp-mines">지뢰(M):</label>
+                        <input id="inp-mines" type="number" min="10" max="667" value="10" class="win-input w-16">
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <button id="btn-custom-ok" type="button" class="win-btn px-4 py-1 font-bold">확인</button>
+                    <button type="button" data-close="modal-custom" class="win-btn px-4 py-1">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         대화상자 2: 지뢰 찾기 최고 기록 (Fastest Mine Sweepers)
+         ========================================== -->
+    <div id="modal-records" class="win-modal-backdrop">
+        <div class="win-frame w-[310px] p-1">
+            <div class="win-titlebar mb-2">
+                <span>지뢰 찾기 최고 기록</span>
+                <button type="button" data-close="modal-records" class="win-ctrl-btn">×</button>
+            </div>
+            <div class="p-3 space-y-3">
+                <div class="space-y-2 text-[12px]">
+                    <div class="grid grid-cols-3 items-center">
+                        <span class="font-bold">초급:</span>
+                        <span id="rec-time-beginner">999초</span>
+                        <span id="rec-name-beginner" class="truncate">익명</span>
+                    </div>
+                    <div class="grid grid-cols-3 items-center">
+                        <span class="font-bold">중급:</span>
+                        <span id="rec-time-intermediate">999초</span>
+                        <span id="rec-name-intermediate" class="truncate">익명</span>
+                    </div>
+                    <div class="grid grid-cols-3 items-center">
+                        <span class="font-bold">고급:</span>
+                        <span id="rec-time-expert">999초</span>
+                        <span id="rec-name-expert" class="truncate">익명</span>
+                    </div>
+                </div>
+                <div class="flex justify-center gap-3 pt-2">
+                    <button id="btn-reset-scores" type="button" class="win-btn px-3 py-1">점수 원래대로(R)</button>
+                    <button type="button" data-close="modal-records" class="win-btn px-5 py-1 font-bold">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         대화상자 3: 신기록 달성 이름 입력 (Winmine New Record)
+         ========================================== -->
+    <div id="modal-new-record" class="win-modal-backdrop">
+        <div class="win-frame w-[290px] p-1">
+            <div class="win-titlebar mb-2">
+                <span>축하합니다!</span>
+                <button type="button" data-close="modal-new-record" class="win-ctrl-btn">×</button>
+            </div>
+            <div class="p-3 text-center space-y-3">
+                <p id="new-record-msg" class="leading-relaxed">
+                    초급 최고 기록을 세웠습니다.<br>이름을 입력하십시오.
+                </p>
+                <input id="inp-winner-name" type="text" maxlength="20" value="익명" class="win-input w-full text-center">
+                <div class="pt-1">
+                    <button id="btn-save-record" type="button" class="win-btn px-6 py-1 font-bold">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         대화상자 4: 도움말 및 정보
+         ========================================== -->
+    <div id="modal-help" class="win-modal-backdrop">
+        <div class="win-frame w-full max-w-[380px] p-1">
+            <div class="win-titlebar mb-2">
+                <span id="help-modal-title">지뢰 찾기 도움말</span>
+                <button type="button" data-close="modal-help" class="win-ctrl-btn">×</button>
+            </div>
+            <div class="p-3 space-y-3 leading-relaxed">
+                <div id="help-modal-body" class="win-bevel-sunken-thin bg-white p-2.5 space-y-1.5 text-[12px]"></div>
+                <div class="flex justify-end">
+                    <button type="button" data-close="modal-help" class="win-btn px-6 py-1 font-bold">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. 클래식 픽셀 그래픽 SVG 에셋 (7-세그먼트 LED, 노란 스마일 4종, 지뢰, 깃발)
+         * ============================================================================
+         */
+        // 7-세그먼트 비트마스크: [상, 우상, 우하, 하, 좌하, 좌상, 중앙]
+        const LED_SEGMENTS = {
+            '0': [1, 1, 1, 1, 1, 1, 0],
+            '1': [0, 1, 1, 0, 0, 0, 0],
+            '2': [1, 1, 0, 1, 1, 0, 1],
+            '3': [1, 1, 1, 1, 0, 0, 1],
+            '4': [0, 1, 1, 0, 0, 1, 1],
+            '5': [1, 0, 1, 1, 0, 1, 1],
+            '6': [1, 0, 1, 1, 1, 1, 1],
+            '7': [1, 1, 1, 0, 0, 0, 0],
+            '8': [1, 1, 1, 1, 1, 1, 1],
+            '9': [1, 1, 1, 1, 0, 1, 1],
+            '-': [0, 0, 0, 0, 0, 0, 1],
+            ' ': [0, 0, 0, 0, 0, 0, 0]
+        };
+
+        // 단일 7-세그먼트 숫자 SVG 생성 (정통 붉은 LED 전광판)
+        function buildLedDigitSVG(ch) {
+            const seg = LED_SEGMENTS[ch] || LED_SEGMENTS[' '];
+            const on = '#ff0000';
+            const off = '#420000';
+            return `<svg width="13" height="23" viewBox="0 0 13 23" shape-rendering="crispEdges">
+                <!-- 상 (A) -->
+                <polygon points="2,1 11,1 9,3 4,3" fill="${seg[0] ? on : off}"/>
+                <!-- 우상 (B) -->
+                <polygon points="12,2 12,10 10,9 10,4" fill="${seg[1] ? on : off}"/>
+                <!-- 우하 (C) -->
+                <polygon points="12,13 12,21 10,19 10,14" fill="${seg[2] ? on : off}"/>
+                <!-- 하 (D) -->
+                <polygon points="2,22 11,22 9,20 4,20" fill="${seg[3] ? on : off}"/>
+                <!-- 좌하 (E) -->
+                <polygon points="1,13 1,21 3,19 3,14" fill="${seg[4] ? on : off}"/>
+                <!-- 좌상 (F) -->
+                <polygon points="1,2 1,10 3,9 3,4" fill="${seg[5] ? on : off}"/>
+                <!-- 중앙 (G) -->
+                <polygon points="2,11.5 4,10 9,10 11,11.5 9,13 4,13" fill="${seg[6] ? on : off}"/>
+            </svg>`;
+        }
+
+        function renderLedPanel(el, numberValue) {
+            const clamped = Math.max(-99, Math.min(999, numberValue));
+            const str = clamped < 0
+                ? '-' + String(Math.abs(clamped)).padStart(2, '0')
+                : String(clamped).padStart(3, '0');
+            el.innerHTML = buildLedDigitSVG(str[0]) + buildLedDigitSVG(str[1]) + buildLedDigitSVG(str[2]);
+        }
+
+        // 클래식 Windows 지뢰 찾기 노란 스마일 버튼 4가지 표정 픽셀 SVG
+        const SMILEY_SVGS = {
+            smile: `<svg width="20" height="20" viewBox="0 0 17 17" shape-rendering="crispEdges">
+                <circle cx="8.5" cy="8.5" r="7.5" fill="#ffff00" stroke="#000000" stroke-width="1"/>
+                <rect x="5" y="5" width="2" height="2" fill="#000000"/>
+                <rect x="10" y="5" width="2" height="2" fill="#000000"/>
+                <rect x="4" y="10" width="1" height="1" fill="#000000"/>
+                <rect x="5" y="11" width="1" height="1" fill="#000000"/>
+                <rect x="6" y="12" width="5" height="1" fill="#000000"/>
+                <rect x="11" y="11" width="1" height="1" fill="#000000"/>
+                <rect x="12" y="10" width="1" height="1" fill="#000000"/>
+            </svg>`,
+            oops: `<svg width="20" height="20" viewBox="0 0 17 17" shape-rendering="crispEdges">
+                <circle cx="8.5" cy="8.5" r="7.5" fill="#ffff00" stroke="#000000" stroke-width="1"/>
+                <rect x="5" y="5" width="2" height="2" fill="#000000"/>
+                <rect x="10" y="5" width="2" height="2" fill="#000000"/>
+                <rect x="7" y="9" width="3" height="1" fill="#000000"/>
+                <rect x="6" y="10" width="1" height="3" fill="#000000"/>
+                <rect x="10" y="10" width="1" height="3" fill="#000000"/>
+                <rect x="7" y="13" width="3" height="1" fill="#000000"/>
+            </svg>`,
+            cool: `<svg width="20" height="20" viewBox="0 0 17 17" shape-rendering="crispEdges">
+                <circle cx="8.5" cy="8.5" r="7.5" fill="#ffff00" stroke="#000000" stroke-width="1"/>
+                <!-- 선글라스 -->
+                <rect x="2" y="5" width="13" height="1" fill="#000000"/>
+                <rect x="3" y="6" width="4" height="3" fill="#000000"/>
+                <rect x="10" y="6" width="4" height="3" fill="#000000"/>
+                <rect x="7" y="6" width="3" height="1" fill="#000000"/>
+                <!-- 미소 -->
+                <rect x="5" y="11" width="1" height="1" fill="#000000"/>
+                <rect x="6" y="12" width="5" height="1" fill="#000000"/>
+                <rect x="11" y="11" width="1" height="1" fill="#000000"/>
+            </svg>`,
+            dead: `<svg width="20" height="20" viewBox="0 0 17 17" shape-rendering="crispEdges">
+                <circle cx="8.5" cy="8.5" r="7.5" fill="#ffff00" stroke="#000000" stroke-width="1"/>
+                <!-- X 눈 -->
+                <path d="M4 5h1v1h1v-1h1v1h-1v1h1v1h-1v-1h-1v1h-1v-1h1v-1h-1z" fill="#000"/>
+                <path d="M10 5h1v1h1v-1h1v1h-1v1h1v1h-1v-1h-1v1h-1v-1h1v-1h-1z" fill="#000"/>
+                <!-- 찡그린 입 -->
+                <rect x="6" y="11" width="5" height="1" fill="#000000"/>
+                <rect x="5" y="12" width="1" height="1" fill="#000000"/>
+                <rect x="11" y="12" width="1" height="1" fill="#000000"/>
+            </svg>`
+        };
+
+        // 클래식 픽셀 깃발, 지뢰, 잘못 꽂은 지뢰(X) SVG
+        const PIXEL_FLAG_SVG = `<svg class="w-[72%] h-[72%] pointer-events-none" viewBox="0 0 16 16" shape-rendering="crispEdges">
+            <rect x="8" y="3" width="1" height="9" fill="#000000"/>
+            <polygon points="9,3 4,5.5 9,8" fill="#ff0000"/>
+            <rect x="6" y="11" width="5" height="1" fill="#000000"/>
+            <rect x="4" y="12" width="9" height="2" fill="#000000"/>
+        </svg>`;
+
+        const PIXEL_MINE_SVG = `<svg class="w-[78%] h-[78%] pointer-events-none" viewBox="0 0 16 16" shape-rendering="crispEdges">
+            <rect x="7" y="2" width="2" height="12" fill="#000000"/>
+            <rect x="2" y="7" width="12" height="2" fill="#000000"/>
+            <rect x="4" y="4" width="8" height="8" fill="#000000"/>
+            <rect x="3" y="3" width="2" height="2" fill="#000000"/>
+            <rect x="11" y="3" width="2" height="2" fill="#000000"/>
+            <rect x="3" y="11" width="2" height="2" fill="#000000"/>
+            <rect x="11" y="11" width="2" height="2" fill="#000000"/>
+            <rect x="5" y="5" width="2" height="2" fill="#ffffff"/>
+        </svg>`;
+
+        const PIXEL_WRONG_MINE_SVG = `<svg class="w-[78%] h-[78%] pointer-events-none" viewBox="0 0 16 16" shape-rendering="crispEdges">
+            <rect x="7" y="2" width="2" height="12" fill="#000000"/>
+            <rect x="2" y="7" width="12" height="2" fill="#000000"/>
+            <rect x="4" y="4" width="8" height="8" fill="#000000"/>
+            <rect x="5" y="5" width="2" height="2" fill="#ffffff"/>
+            <path d="M2 2 L14 14 M14 2 L2 14" stroke="#ff0000" stroke-width="2"/>
+        </svg>`;
+
+        /**
+         * ============================================================================
+         * 2. 클래식 Windows winmine.exe 비프/효과음 합성기 (틱 소리, 폭발음, 팡파르)
+         * ============================================================================
+         */
+        class ClassicWinmineAudio {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            ensure() {
+                if (!this.ctx) {
+                    const AC = window.AudioContext || window.webkitAudioContext;
+                    if (AC) this.ctx = new AC();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            beep(freq, type = 'square', duration = 0.05, vol = 0.08, delay = 0) {
+                if (!this.enabled) return;
+                this.ensure();
+                if (!this.ctx) return;
+
+                const t = this.ctx.currentTime + delay;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(vol, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + duration);
+            }
+
+            // 오리지널 winmine.exe 특유의 1초마다 똑딱거리는 타이머 소리
+            tick() {
+                this.beep(980, 'square', 0.018, 0.03);
+            }
+
+            click() {
+                this.beep(620, 'triangle', 0.035, 0.07);
+            }
+
+            flag() {
+                this.beep(440, 'square', 0.04, 0.06);
+            }
+
+            explode() {
+                if (!this.enabled) return;
+                this.ensure();
+                if (!this.ctx) return;
+
+                // 레트로 저음 폭발 노이즈
+                const now = this.ctx.currentTime;
+                const len = Math.floor(this.ctx.sampleRate * 0.42);
+                const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < len; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.35));
+                }
+
+                const src = this.ctx.createBufferSource();
+                src.buffer = buf;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(600, now);
+                filter.frequency.exponentialRampToValueAtTime(90, now + 0.42);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.24, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+
+                src.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                src.start(now);
+
+                this.beep(110, 'sawtooth', 0.35, 0.12);
+            }
+
+            win() {
+                // 클래식 PC 스피커 스타일 상승 멜로디
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                const durs  = [0.09, 0.09, 0.09, 0.24];
+                notes.forEach((f, i) => this.beep(f, 'square', durs[i], 0.08, i * 0.1));
+            }
+        }
+
+        const sound = new ClassicWinmineAudio();
+
+        /**
+         * ============================================================================
+         * 3. 게임 상태 및 정통 Windows 지뢰 찾기 규칙 엔진
+         * ============================================================================
+         */
+        const PRESETS = {
+            beginner:     { label: '초급', cols: 9,  rows: 9,  mines: 10 },
+            intermediate: { label: '중급', cols: 16, rows: 16, mines: 40 },
+            expert:       { label: '고급', cols: 30, rows: 16, mines: 99 }
+        };
+
+        const state = {
+            diffKey: 'beginner', // 'beginner' | 'intermediate' | 'expert' | 'custom'
+            cols: 9,
+            rows: 9,
+            totalMines: 10,
+
+            // 클래식 옵션
+            useQuestionMarks: true, // 표시(?) 사용(M)
+            useColor: true,         // 컬러(L)
+            cellSize: 24,           // 기본 클래식 타일 크기 (확대/축소 가능)
+
+            // 보드 데이터: { r, c, mine, state: 'hidden'|'flagged'|'question'|'revealed', count, el }
+            grid: [],
+            firstMove: true,
+            gameOver: false,
+            won: false,
+            flagsCount: 0,
+            revealedCount: 0,
+
+            // 정통 1초 단위 LED 타이머 (첫 클릭 시 1초부터 시작하여 최대 999초)
+            seconds: 0,
+            timerId: null,
+
+            // 모바일/터치용 보조 모드 ('dig' | 'flag')
+            touchMode: 'dig',
+
+            // 클래식 최고 기록 (메모리 상태 - 기본값 999초 / 익명)
+            bestRecords: {
+                beginner:     { time: 999, name: '익명' },
+                intermediate: { time: 999, name: '익명' },
+                expert:       { time: 999, name: '익명' }
+            },
+            pendingRecordDiff: null
+        };
+
+        const dom = {
+            windowEl: document.getElementById('winmine-window'),
+            gridEl: document.getElementById('mine-grid'),
+            ledMines: document.getElementById('led-mines'),
+            ledTimer: document.getElementById('led-timer'),
+            smileyBtn: document.getElementById('btn-smiley'),
+            smileyWrap: document.getElementById('smiley-svg-wrap'),
+            statusHint: document.getElementById('status-hint'),
+            btnTouchDig: document.getElementById('btn-touch-dig'),
+            btnTouchFlag: document.getElementById('btn-touch-flag')
+        };
+
+        function setSmiley(type) {
+            dom.smileyWrap.innerHTML = SMILEY_SVGS[type] || SMILEY_SVGS.smile;
+        }
+
+        function applyCellSize(px) {
+            state.cellSize = Math.max(18, Math.min(42, px));
+            document.documentElement.style.setProperty('--cell-size', `${state.cellSize}px`);
+        }
+
+        // 메뉴바 체크 표시(✓) 동기화
+        function syncMenuChecks() {
+            ['beginner', 'intermediate', 'expert', 'custom'].forEach(k => {
+                const el = document.getElementById(`chk-${k}`);
+                if (el) el.textContent = (state.diffKey === k) ? '✓' : '';
+            });
+            document.getElementById('chk-marks').textContent = state.useQuestionMarks ? '✓' : '';
+            document.getElementById('chk-color').textContent = state.useColor ? '✓' : '';
+            document.getElementById('chk-sound').textContent = sound.enabled ? '✓' : '';
+
+            dom.windowEl.classList.toggle('bw-mode', !state.useColor);
+        }
+
+        // 주변 8칸 이웃 반환
+        function getNeighbors(r, c) {
+            const res = [];
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    if (dr === 0 && dc === 0) continue;
+                    const nr = r + dr;
+                    const nc = c + dc;
+                    if (nr >= 0 && nr < state.rows && nc >= 0 && nc < state.cols) {
+                        res.push(state.grid[nr][nc]);
+                    }
+                }
+            }
+            return res;
+        }
+
+        // 타이머 제어
+        function stopTimer() {
+            if (state.timerId) {
+                clearInterval(state.timerId);
+                state.timerId = null;
+            }
+        }
+
+        function startTimer() {
+            stopTimer();
+            state.seconds = 1;
+            renderLedPanel(dom.ledTimer, state.seconds);
+
+            state.timerId = setInterval(() => {
+                if (state.gameOver) {
+                    stopTimer();
+                    return;
+                }
+                if (state.seconds < 999) {
+                    state.seconds++;
+                    renderLedPanel(dom.ledTimer, state.seconds);
+                    sound.tick();
+                }
+            }, 1000);
+        }
+
+        // 새 게임 시작 및 보드 초기화
+        function startNewGame() {
+            stopTimer();
+            clearPeekedCells();
+
+            state.firstMove = true;
+            state.gameOver = false;
+            state.won = false;
+            state.flagsCount = 0;
+            state.revealedCount = 0;
+            state.seconds = 0;
+
+            setSmiley('smile');
+            renderLedPanel(dom.ledMines, state.totalMines);
+            renderLedPanel(dom.ledTimer, 0);
+            syncMenuChecks();
+
+            dom.gridEl.style.setProperty('--cols', state.cols);
+            dom.gridEl.style.setProperty('--rows', state.rows);
+            dom.gridEl.innerHTML = '';
+
+            state.grid = [];
+            const frag = document.createDocumentFragment();
+
+            for (let r = 0; r < state.rows; r++) {
+                const row = [];
+                for (let c = 0; c < state.cols; c++) {
+                    const el = document.createElement('div');
+                    el.className = 'mine-cell unrevealed';
+                    el.dataset.r = r;
+                    el.dataset.c = c;
+
+                    const cell = {
+                        r,
+                        c,
+                        mine: false,
+                        state: 'hidden', // 'hidden' | 'flagged' | 'question' | 'revealed'
+                        count: 0,
+                        el
+                    };
+                    row.push(cell);
+                    frag.appendChild(el);
+                }
+                state.grid.push(row);
+            }
+
+            dom.gridEl.appendChild(frag);
+        }
+
+        // 지뢰 무작위 배치 (첫 클릭 위치 안전 보장 - 오리지널 winmine.exe 방식 + 주변 안전 우선)
+        function placeMines(safeR, safeC) {
+            const totalCells = state.rows * state.cols;
+            const strictPool = [];
+            const fallbackPool = [];
+
+            for (let r = 0; r < state.rows; r++) {
+                for (let c = 0; c < state.cols; c++) {
+                    if (r === safeR && c === safeC) continue;
+                    if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) {
+                        fallbackPool.push(state.grid[r][c]);
+                    } else {
+                        strictPool.push(state.grid[r][c]);
+                    }
+                }
+            }
+
+            const shuffle = (arr) => {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+            };
+
+            shuffle(strictPool);
+            shuffle(fallbackPool);
+
+            // 사용자 지정 모드에서 지뢰 수가 매우 많더라도 첫 클릭 칸은 무조건 안전 보장
+            const combined = [...strictPool, ...fallbackPool];
+            const minesToPlace = Math.min(state.totalMines, totalCells - 1);
+
+            for (let i = 0; i < minesToPlace; i++) {
+                combined[i].mine = true;
+            }
+
+            // 인접 지뢰 개수 계산
+            for (let r = 0; r < state.rows; r++) {
+                for (let c = 0; c < state.cols; c++) {
+                    const cell = state.grid[r][c];
+                    if (cell.mine) continue;
+                    cell.count = getNeighbors(r, c).filter(n => n.mine).length;
+                }
+            }
+        }
+
+        // 우클릭 순환: 닫힘 -> 깃발(🚩) -> 물음표(?) -> 닫힘 (오리지널 winmine.exe 완벽 고증)
+        function cycleCellMark(cell) {
+            if (state.gameOver || cell.state === 'revealed') return;
+
+            if (cell.state === 'hidden') {
+                cell.state = 'flagged';
+                state.flagsCount++;
+                cell.el.innerHTML = PIXEL_FLAG_SVG;
+                sound.flag();
+            } else if (cell.state === 'flagged') {
+                state.flagsCount--;
+                if (state.useQuestionMarks) {
+                    cell.state = 'question';
+                    cell.el.innerHTML = `<span class="text-black font-bold pointer-events-none">?</span>`;
+                } else {
+                    cell.state = 'hidden';
+                    cell.el.innerHTML = '';
+                }
+                sound.flag();
+            } else if (cell.state === 'question') {
+                cell.state = 'hidden';
+                cell.el.innerHTML = '';
+                sound.flag();
+            }
+
+            if (navigator.vibrate) navigator.vibrate(15);
+            renderLedPanel(dom.ledMines, state.totalMines - state.flagsCount);
+        }
+
+        // 칸 열기 (BFS 연쇄 개방)
+        function revealCell(startCell, playClickSound = true) {
+            if (state.gameOver || startCell.state === 'revealed' || startCell.state === 'flagged') return;
+
+            if (state.firstMove) {
+                state.firstMove = false;
+                placeMines(startCell.r, startCell.c);
+                startTimer();
+            }
+
+            if (startCell.mine) {
+                triggerGameOverLoss(startCell);
+                return;
+            }
+
+            const queue = [startCell];
+            const visited = new Set([`${startCell.r},${startCell.c}`]);
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                if (curr.state === 'revealed' || curr.state === 'flagged') continue;
+
+                curr.state = 'revealed';
+                state.revealedCount++;
+
+                curr.el.className = 'mine-cell revealed' + (curr.count > 0 ? ` num-${curr.count}` : '');
+                curr.el.innerHTML = curr.count > 0 ? String(curr.count) : '';
+
+                if (curr.count === 0) {
+                    for (const nb of getNeighbors(curr.r, curr.c)) {
+                        const key = `${nb.r},${nb.c}`;
+                        if (nb.state !== 'revealed' && nb.state !== 'flagged' && !nb.mine && !visited.has(key)) {
+                            visited.add(key);
+                            queue.push(nb);
+                        }
+                    }
+                }
+            }
+
+            if (playClickSound && !state.gameOver) {
+                sound.click();
+            }
+
+            checkVictory();
+        }
+
+        // 주변 자동 열기 (Chording: 좌+우 동시 클릭 또는 열린 숫자 클릭)
+        function chordAroundCell(centerCell) {
+            if (state.gameOver || centerCell.state !== 'revealed' || centerCell.count === 0) return;
+
+            const neighbors = getNeighbors(centerCell.r, centerCell.c);
+            const flaggedCount = neighbors.filter(n => n.state === 'flagged').length;
+
+            if (flaggedCount !== centerCell.count) return;
+
+            const targets = neighbors.filter(n => n.state === 'hidden' || n.state === 'question');
+            if (targets.length === 0) return;
+
+            for (const nb of targets) {
+                revealCell(nb, false);
+                if (state.gameOver) return;
+            }
+            sound.click();
+        }
+
+        // 패배 처리: 밟은 지뢰 빨간 바탕 + 오답 깃발에 X 표시 + 나머지 지뢰 공개
+        function triggerGameOverLoss(explodedCell) {
+            state.gameOver = true;
+            state.won = false;
+            stopTimer();
+            setSmiley('dead');
+            sound.explode();
+
+            explodedCell.state = 'revealed';
+            explodedCell.el.className = 'mine-cell exploded';
+            explodedCell.el.innerHTML = PIXEL_MINE_SVG;
+
+            for (let r = 0; r < state.rows; r++) {
+                for (let c = 0; c < state.cols; c++) {
+                    const cell = state.grid[r][c];
+                    if (cell === explodedCell) continue;
+
+                    if (cell.mine && cell.state !== 'flagged') {
+                        cell.el.className = 'mine-cell revealed';
+                        cell.el.innerHTML = PIXEL_MINE_SVG;
+                    } else if (!cell.mine && cell.state === 'flagged') {
+                        cell.el.className = 'mine-cell revealed';
+                        cell.el.innerHTML = PIXEL_WRONG_MINE_SVG;
+                    }
+                }
+            }
+        }
+
+        // 승리 처리: 선글라스 스마일(😎) + 남은 지뢰 자동 깃발 + 신기록 달성 확인
+        function checkVictory() {
+            const safeTotal = state.rows * state.cols - state.totalMines;
+            if (state.revealedCount !== safeTotal || state.gameOver) return;
+
+            state.gameOver = true;
+            state.won = true;
+            stopTimer();
+            setSmiley('cool');
+            sound.win();
+
+            // 아직 깃발이 꽂히지 않은 지뢰에 자동으로 깃발 세우기
+            for (let r = 0; r < state.rows; r++) {
+                for (let c = 0; c < state.cols; c++) {
+                    const cell = state.grid[r][c];
+                    if (cell.mine && cell.state !== 'flagged') {
+                        cell.state = 'flagged';
+                        state.flagsCount++;
+                        cell.el.innerHTML = PIXEL_FLAG_SVG;
+                    }
+                }
+            }
+            renderLedPanel(dom.ledMines, 0);
+
+            // 초급/중급/고급에서 기존 최고 기록 경신 시 이름 입력 창 오픈!
+            if (PRESETS[state.diffKey]) {
+                const finalSec = Math.max(1, state.seconds);
+                const prevBest = state.bestRecords[state.diffKey].time;
+                if (finalSec < prevBest) {
+                    state.pendingRecordDiff = state.diffKey;
+                    const label = PRESETS[state.diffKey].label;
+                    document.getElementById('new-record-msg').innerHTML =
+                        `${label} 최고 기록을 세웠습니다.<br>이름을 입력하십시오.`;
+                    document.getElementById('inp-winner-name').value = state.bestRecords[state.diffKey].name;
+                    setTimeout(() => {
+                        openModal('modal-new-record');
+                        document.getElementById('inp-winner-name').select();
+                    }, 280);
+                }
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 4. 정통 Windows 마우스 조작 (단일 누름 움푹 효과, 좌+우 동시 클릭 Chording) & 모바일 터치
+         * ============================================================================
+         */
+        let peekedCells = [];
+
+        function clearPeekedCells() {
+            for (const c of peekedCells) {
+                c.el.classList.remove('pressed-peek');
+            }
+            peekedCells = [];
+        }
+
+        function applyPeekSingle(cell) {
+            clearPeekedCells();
+            if (!cell || state.gameOver) return;
+            if (cell.state === 'hidden' || cell.state === 'question') {
+                cell.el.classList.add('pressed-peek');
+                peekedCells.push(cell);
+            }
+        }
+
+        function applyPeekNeighbors(cell) {
+            clearPeekedCells();
+            if (!cell || state.gameOver) return;
+            const group = [cell, ...getNeighbors(cell.r, cell.c)];
+            for (const item of group) {
+                if (item.state === 'hidden' || item.state === 'question') {
+                    item.el.classList.add('pressed-peek');
+                    peekedCells.push(item);
+                }
+            }
+        }
+
+        function getCellFromTarget(target) {
+            const el = target?.closest('.mine-cell');
+            if (!el) return null;
+            const r = parseInt(el.dataset.r, 10);
+            const c = parseInt(el.dataset.c, 10);
+            return state.grid[r]?.[c] || null;
+        }
+
+        // 마우스 조작 상태 (좌+우 동시 클릭 Chording 완벽 구현)
+        const mouseState = {
+            leftDown: false,
+            rightDown: false,
+            chordActive: false,
+            hoverCell: null
+        };
+
+        dom.gridEl.addEventListener('mousedown', (e) => {
+            closeAllDropdowns();
+            if (state.gameOver) return;
+            const cell = getCellFromTarget(e.target);
+            if (!cell) return;
+
+            mouseState.hoverCell = cell;
+
+            if (e.button === 0) mouseState.leftDown = true;
+            if (e.button === 2) mouseState.rightDown = true;
+
+            // 좌+우 동시 클릭 또는 휠클릭 -> 주변 8칸이 움푹 눌리는 정통 Windows Chording 피드백!
+            if ((mouseState.leftDown && mouseState.rightDown) || e.button === 1) {
+                e.preventDefault();
+                mouseState.chordActive = true;
+                setSmiley('oops');
+                applyPeekNeighbors(cell);
+                return;
+            }
+
+            // 단독 우클릭 -> 즉시 깃발 / ? 순환
+            if (e.button === 2 && !mouseState.leftDown) {
+                e.preventDefault();
+                cycleCellMark(cell);
+                return;
+            }
+
+            // 단독 좌클릭 누름 -> 놀란 표정(😮) + 해당 칸(또는 열린 숫자 주변) 움푹 들어감
+            if (e.button === 0) {
+                setSmiley('oops');
+                if (cell.state === 'revealed' && cell.count > 0) {
+                    applyPeekNeighbors(cell);
+                } else if (state.touchMode === 'dig') {
+                    applyPeekSingle(cell);
+                }
+            }
+        });
+
+        dom.gridEl.addEventListener('mousemove', (e) => {
+            if (state.gameOver || (!mouseState.leftDown && !mouseState.chordActive)) return;
+            const cell = getCellFromTarget(e.target);
+            mouseState.hoverCell = cell;
+
+            if (!cell) {
+                clearPeekedCells();
+                return;
+            }
+
+            if (mouseState.chordActive || (mouseState.leftDown && cell.state === 'revealed' && cell.count > 0)) {
+                applyPeekNeighbors(cell);
+            } else if (mouseState.leftDown && state.touchMode === 'dig') {
+                applyPeekSingle(cell);
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (!mouseState.leftDown && !mouseState.rightDown && !mouseState.chordActive) return;
+
+            const cell = getCellFromTarget(e.target);
+            clearPeekedCells();
+
+            if (!state.gameOver) {
+                setSmiley('smile');
+            }
+
+            // 좌+우 동시 클릭(또는 휠 클릭) 해제 시 Chording 발동
+            if (mouseState.chordActive || e.button === 1) {
+                if (cell && !state.gameOver) {
+                    chordAroundCell(cell);
+                }
+                if (e.button === 0) mouseState.leftDown = false;
+                if (e.button === 2) mouseState.rightDown = false;
+                if (!mouseState.leftDown && !mouseState.rightDown) {
+                    mouseState.chordActive = false;
+                }
+                return;
+            }
+
+            // 단독 좌클릭 해제 시
+            if (e.button === 0 && mouseState.leftDown) {
+                mouseState.leftDown = false;
+                if (cell && !state.gameOver) {
+                    if (cell.state === 'revealed' && cell.count > 0) {
+                        chordAroundCell(cell);
+                    } else if (state.touchMode === 'flag') {
+                        cycleCellMark(cell);
+                    } else {
+                        revealCell(cell, true);
+                    }
+                }
+            }
+
+            if (e.button === 2) {
+                mouseState.rightDown = false;
+            }
+        });
+
+        // 모바일 터치 길게 누르기(0.32초) 즉시 깃발 꽂기 지원
+        let touchTimer = null;
+        let touchMoved = false;
+        let touchLongTriggered = false;
+        let touchStartPos = { x: 0, y: 0 };
+
+        dom.gridEl.addEventListener('touchstart', (e) => {
+            if (state.gameOver || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            const cell = getCellFromTarget(e.target);
+            if (!cell) return;
+
+            touchMoved = false;
+            touchLongTriggered = false;
+            touchStartPos = { x: t.clientX, y: t.clientY };
+
+            if (cell.state !== 'revealed') {
+                touchTimer = setTimeout(() => {
+                    if (!touchMoved && !state.gameOver) {
+                        touchLongTriggered = true;
+                        clearPeekedCells();
+                        setSmiley('smile');
+                        cycleCellMark(cell);
+                    }
+                }, 320);
+            }
+        }, { passive: true });
+
+        dom.gridEl.addEventListener('touchmove', (e) => {
+            if (!touchTimer) return;
+            const t = e.touches[0];
+            if (Math.hypot(t.clientX - touchStartPos.x, t.clientY - touchStartPos.y) > 9) {
+                touchMoved = true;
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+        }, { passive: true });
+
+        dom.gridEl.addEventListener('touchend', (e) => {
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+            if (touchLongTriggered) {
+                // 길게 눌러 깃발을 꽂은 경우 합성 마우스 클릭 방지
+                e.preventDefault();
+                touchLongTriggered = false;
+            }
+        });
+
+        /**
+         * ============================================================================
+         * 5. 드롭다운 메뉴, 모달 대화상자, 단축키(F2 / F1) 이벤트 연결
+         * ============================================================================
+         */
+        const triggerGame = document.getElementById('trigger-game');
+        const dropdownGame = document.getElementById('dropdown-game');
+        const triggerHelp = document.getElementById('trigger-help');
+        const dropdownHelp = document.getElementById('dropdown-help');
+
+        function closeAllDropdowns() {
+            dropdownGame.classList.remove('show');
+            dropdownHelp.classList.remove('show');
+            triggerGame.classList.remove('open');
+            triggerHelp.classList.remove('open');
+        }
+
+        triggerGame.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownGame.classList.contains('show');
+            closeAllDropdowns();
+            if (!isOpen) {
+                dropdownGame.classList.add('show');
+                triggerGame.classList.add('open');
+            }
+        });
+
+        triggerHelp.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdownHelp.classList.contains('show');
+            closeAllDropdowns();
+            if (!isOpen) {
+                dropdownHelp.classList.add('show');
+                triggerHelp.classList.add('open');
+            }
+        });
+
+        window.addEventListener('click', () => closeAllDropdowns());
+
+        // 모달 열기/닫기 헬퍼
+        function openModal(id) {
+            closeAllDropdowns();
+            const el = document.getElementById(id);
+            if (el) el.classList.add('open');
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('open');
+        }
+
+        document.querySelectorAll('[data-close]').forEach(btn => {
+            btn.addEventListener('click', () => closeModal(btn.dataset.close));
+        });
+
+        document.querySelectorAll('.win-modal-backdrop').forEach(bg => {
+            bg.addEventListener('click', (e) => {
+                if (e.target === bg) bg.classList.remove('open');
+            });
+        });
+
+        // 최고 기록 표시 갱신
+        function refreshRecordsModalUI() {
+            ['beginner', 'intermediate', 'expert'].forEach(k => {
+                document.getElementById(`rec-time-${k}`).textContent = `${state.bestRecords[k].time}초`;
+                document.getElementById(`rec-name-${k}`).textContent = state.bestRecords[k].name;
+            });
+        }
+
+        // 드롭다운 항목 클릭 처리
+        document.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeAllDropdowns();
+
+                const diff = item.dataset.diff;
+                const action = item.dataset.action;
+
+                if (diff && PRESETS[diff]) {
+                    state.diffKey = diff;
+                    state.cols = PRESETS[diff].cols;
+                    state.rows = PRESETS[diff].rows;
+                    state.totalMines = PRESETS[diff].mines;
+                    autoAdjustCellSizeForScreen();
+                    startNewGame();
+                    return;
+                }
+
+                switch (action) {
+                    case 'new':
+                        startNewGame();
+                        break;
+                    case 'custom':
+                        document.getElementById('inp-rows').value = state.rows;
+                        document.getElementById('inp-cols').value = state.cols;
+                        document.getElementById('inp-mines').value = state.totalMines;
+                        openModal('modal-custom');
+                        break;
+                    case 'toggle-marks':
+                        state.useQuestionMarks = !state.useQuestionMarks;
+                        syncMenuChecks();
+                        break;
+                    case 'toggle-color':
+                        state.useColor = !state.useColor;
+                        syncMenuChecks();
+                        break;
+                    case 'toggle-sound':
+                        sound.enabled = !sound.enabled;
+                        syncMenuChecks();
+                        if (sound.enabled) sound.click();
+                        break;
+                    case 'best-times':
+                        refreshRecordsModalUI();
+                        openModal('modal-records');
+                        break;
+                    case 'help-howto':
+                        document.getElementById('help-modal-title').textContent = '지뢰 찾기 도움말';
+                        document.getElementById('help-modal-body').innerHTML = `
+                            <p><strong>■ 목표:</strong> 지뢰가 없는 모든 빈 칸을 가능한 한 빨리 여십시오.</p>
+                            <p><strong>■ 숫자 의미:</strong> 열린 칸의 숫자는 주변 8칸 안에 숨겨진 지뢰의 개수입니다.</p>
+                            <p><strong>■ 클래식 조작법:</strong></p>
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li><strong>좌클릭:</strong> 칸 열기 (첫 번째 클릭은 항상 안전합니다)</li>
+                                <li><strong>우클릭:</strong> 깃발(🚩) → 물음표(?) → 해제 순환</li>
+                                <li><strong>좌+우 동시 클릭(또는 숫자 클릭):</strong> 주변에 숫자만큼 깃발이 꽂혀 있으면 나머지 칸을 한 번에 엽니다.</li>
+                                <li><strong>모바일:</strong> 하단 [⛏ 열기 / 🚩 깃발] 버튼 또는 길게 누르기로 깃발을 꽂으세요.</li>
+                            </ul>
+                        `;
+                        openModal('modal-help');
+                        break;
+                    case 'help-about':
+                        document.getElementById('help-modal-title').textContent = '지뢰 찾기 정보';
+                        document.getElementById('help-modal-body').innerHTML = `
+                            <p class="font-bold">Microsoft® Windows Classic 지뢰 찾기 (재현판)</p>
+                            <p>Windows 95 / 98 / XP 시절의 정통 3D 베벨 인터페이스, 7-세그먼트 LED 전광판, 좌+우 동시 클릭(Chording) 조작을 그대로 구현했습니다.</p>
+                        `;
+                        openModal('modal-help');
+                        break;
+                }
+            });
+        });
+
+        // 사용자 지정 필드 확인 버튼 (오리지널 winmine.exe 범위: 높이 9~24, 너비 9~30, 지뢰 10~(H-1)*(W-1))
+        document.getElementById('btn-custom-ok').addEventListener('click', () => {
+            let r = parseInt(document.getElementById('inp-rows').value, 10) || 9;
+            let c = parseInt(document.getElementById('inp-cols').value, 10) || 9;
+            let m = parseInt(document.getElementById('inp-mines').value, 10) || 10;
+
+            r = Math.max(9, Math.min(24, r));
+            c = Math.max(9, Math.min(30, c));
+            const maxMines = Math.max(10, (r - 1) * (c - 1));
+            m = Math.max(10, Math.min(maxMines, m));
+
+            state.diffKey = 'custom';
+            state.rows = r;
+            state.cols = c;
+            state.totalMines = m;
+
+            closeModal('modal-custom');
+            autoAdjustCellSizeForScreen();
+            startNewGame();
+        });
+
+        // 신기록 저장 확인
+        function commitNewRecord() {
+            if (state.pendingRecordDiff && state.bestRecords[state.pendingRecordDiff]) {
+                const nameVal = document.getElementById('inp-winner-name').value.trim() || '익명';
+                state.bestRecords[state.pendingRecordDiff] = {
+                    time: Math.max(1, state.seconds),
+                    name: nameVal
+                };
+                state.pendingRecordDiff = null;
+            }
+            closeModal('modal-new-record');
+            refreshRecordsModalUI();
+            openModal('modal-records');
+        }
+
+        document.getElementById('btn-save-record').addEventListener('click', commitNewRecord);
+        document.getElementById('inp-winner-name').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') commitNewRecord();
+        });
+
+        // 최고 기록 초기화 버튼
+        document.getElementById('btn-reset-scores').addEventListener('click', () => {
+            state.bestRecords = {
+                beginner:     { time: 999, name: '익명' },
+                intermediate: { time: 999, name: '익명' },
+                expert:       { time: 999, name: '익명' }
+            };
+            refreshRecordsModalUI();
+        });
+
+        // 스마일 버튼 및 창 제어 버튼
+        dom.smileyBtn.addEventListener('click', startNewGame);
+        document.getElementById('btn-win-close').addEventListener('click', startNewGame);
+
+        document.getElementById('quick-zoom-in').addEventListener('click', () => applyCellSize(state.cellSize + 3));
+        document.getElementById('quick-zoom-out').addEventListener('click', () => applyCellSize(state.cellSize - 3));
+        document.getElementById('btn-win-zoom').addEventListener('click', () => {
+            applyCellSize(state.cellSize >= 30 ? 24 : 30);
+        });
+
+        // 하단 터치 모드 전환 버튼
+        function setTouchMode(mode) {
+            state.touchMode = mode;
+            dom.btnTouchDig.classList.toggle('pressed', mode === 'dig');
+            dom.btnTouchDig.classList.toggle('font-bold', mode === 'dig');
+            dom.btnTouchFlag.classList.toggle('pressed', mode === 'flag');
+            dom.btnTouchFlag.classList.toggle('font-bold', mode === 'flag');
+        }
+        dom.btnTouchDig.addEventListener('click', () => setTouchMode('dig'));
+        dom.btnTouchFlag.addEventListener('click', () => setTouchMode('flag'));
+
+        // 단축키 지원 (F2: 새 게임, F1: 도움말, ESC: 모달/메뉴 닫기)
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                startNewGame();
+            } else if (e.key === 'F1') {
+                e.preventDefault();
+                document.querySelector('[data-action="help-howto"]').click();
+            } else if (e.key === 'Escape') {
+                closeAllDropdowns();
+                document.querySelectorAll('.win-modal-backdrop.open').forEach(el => el.classList.remove('open'));
+            }
+        });
+
+        // 화면 폭에 맞춰 기본 타일 크기 스마트 설정
+        function autoAdjustCellSizeForScreen() {
+            const availW = window.innerWidth - 64;
+            const ideal = Math.floor(availW / state.cols);
+            if (window.innerWidth < 540) {
+                applyCellSize(Math.max(22, Math.min(30, ideal)));
+            } else {
+                applyCellSize(state.cols >= 24 ? 24 : 26);
+            }
+        }
+
+        // 초기 구동
+        window.onload = () => {
+            autoAdjustCellSizeForScreen();
+            startNewGame();
+        };
+    </script>
+</body>
+</html>
