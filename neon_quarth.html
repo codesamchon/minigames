@@ -126,14 +126,20 @@
   <div class="w-full max-w-[540px] h-full flex flex-col justify-between gap-1.5 sm:gap-2 relative">
 
     <!-- Top Arcade HUD Bar -->
-    <header class="w-full glass-panel rounded-2xl px-3 py-2 flex items-center justify-between gap-2 z-20 shrink-0">
-      <!-- Score & Difficulty -->
-      <div class="flex flex-col min-w-[92px]">
+    <header class="w-full glass-panel rounded-2xl px-2.5 sm:px-3 py-2 flex items-center justify-between gap-1.5 sm:gap-2 z-20 shrink-0">
+      <!-- Launcher & Score -->
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="./index.html" id="btnLauncher" tabindex="-1" title="미니게임 런처로 돌아가기" class="h-8 px-2.5 rounded-lg bg-slate-800/85 hover:bg-slate-700/85 active:scale-95 border border-cyan-400/35 flex items-center justify-center gap-1 text-slate-100 text-xs font-extrabold transition no-underline shrink-0">
+          <span>🏠</span>
+          <span>런처</span>
+        </a>
+        <div class="flex flex-col min-w-[68px] sm:min-w-[84px]">
         <div class="flex items-center gap-1.5">
           <span class="text-[10px] font-sci tracking-widest text-cyan-300/80">SCORE</span>
           <span id="hudDiffBadge" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30">보통</span>
         </div>
-        <span id="hudScore" class="font-sci text-sm sm:text-base font-extrabold text-white tracking-wider">0</span>
+          <span id="hudScore" class="font-sci text-sm sm:text-base font-extrabold text-white tracking-wider">0</span>
+        </div>
       </div>
 
       <!-- Stage & Wave Progress -->
@@ -287,6 +293,9 @@
           <button id="btnPauseToTitle" type="button" class="neon-btn w-full py-2.5 rounded-xl font-semibold text-slate-200 bg-slate-800/90 border border-slate-600/60">
             타이틀 화면으로
           </button>
+          <a href="./index.html" class="neon-btn w-full py-2.5 rounded-xl font-semibold text-cyan-200 bg-slate-900/90 border border-cyan-500/35 no-underline block">
+            🏠 미니게임 런처로 이동
+          </a>
         </div>
       </div>
 
@@ -2265,6 +2274,18 @@
       lastTime = performance.now();
       requestAnimationFrame(gameLoop);
     };
+  
+      (function() {
+        var btn = document.getElementById('btnLauncher');
+        if (!btn) return;
+        btn.addEventListener('click', function(e) {
+          if (window.history.length > 1 && document.referrer && location.origin && location.origin !== 'null' && document.referrer.indexOf(location.origin) === 0) {
+            e.preventDefault();
+            window.history.back();
+          }
+        });
+      })();
+
   </script>
 </body>
 </html>

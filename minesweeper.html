@@ -143,9 +143,10 @@
         /* 상단 메뉴바 및 드롭다운 메뉴 */
         .menubar {
             background-color: var(--win-gray);
-            padding: 1px 4px;
+            padding: 2px 4px;
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 2px;
             position: relative;
             border-bottom: 1px solid #b5b5b5;
@@ -366,8 +367,9 @@
             </div>
         </header>
 
-        <!-- 2. 클래식 메뉴바: 게임(G) / 도움말(H) -->
+        <!-- 2. 클래식 메뉴바: 런처 복귀 / 게임(G) / 도움말(H) -->
         <nav class="menubar select-none">
+            <a href="./index.html" id="btn-launcher" class="win-btn px-1.5 py-0.5 text-[11px] font-bold no-underline mr-0.5" style="text-decoration:none;" title="미니게임 런처로 돌아가기">🏠 런처</a>
             <!-- 게임(G) 드롭다운 -->
             <div class="relative">
                 <div id="trigger-game" class="menu-trigger"><u>게임</u>(G)</div>
@@ -409,6 +411,10 @@
                     <div class="dropdown-sep"></div>
                     <button type="button" data-action="best-times" class="dropdown-item">
                         <span>최고 기록(T)...</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button type="button" data-action="go-launcher" class="dropdown-item">
+                        <span>런처로 돌아가기(X)</span>
                     </button>
                 </div>
             </div>
@@ -1498,6 +1504,9 @@
                         refreshRecordsModalUI();
                         openModal('modal-records');
                         break;
+                    case 'go-launcher':
+                        document.getElementById('btn-launcher').click();
+                        break;
                     case 'help-howto':
                         document.getElementById('help-modal-title').textContent = '지뢰 찾기 도움말';
                         document.getElementById('help-modal-body').innerHTML = `
@@ -1627,6 +1636,18 @@
             autoAdjustCellSizeForScreen();
             startNewGame();
         };
+    
+      (function() {
+        var btn = document.getElementById('btn-launcher');
+        if (!btn) return;
+        btn.addEventListener('click', function(e) {
+          if (window.history.length > 1 && document.referrer && location.origin && location.origin !== 'null' && document.referrer.indexOf(location.origin) === 0) {
+            e.preventDefault();
+            window.history.back();
+          }
+        });
+      })();
+
     </script>
 </body>
 </html>

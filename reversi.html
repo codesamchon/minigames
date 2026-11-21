@@ -238,7 +238,11 @@
 
     <!-- 상단 헤더 & 컨트롤 바 -->
     <header class="w-full max-w-4xl flex flex-wrap items-center justify-between gap-2 pb-2 sm:pb-3 border-b border-slate-800/80">
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-2 sm:gap-2.5">
+            <a href="./index.html" id="btn-launcher" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 text-xs sm:text-sm font-extrabold border border-slate-700 transition flex items-center gap-1.5 shadow-sm no-underline" title="미니게임 런처로 돌아가기">
+                <span>🏠</span>
+                <span>런처</span>
+            </a>
             <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center shadow-inner">
                 <div class="w-5 h-5 rounded-full bg-gradient-to-br from-white via-slate-300 to-slate-900 border border-emerald-400"></div>
             </div>
@@ -1610,6 +1614,18 @@
         window.onload = function () {
             window.othelloGame = new OthelloGame();
         };
+    
+      (function() {
+        var btn = document.getElementById('btn-launcher');
+        if (!btn) return;
+        btn.addEventListener('click', function(e) {
+          if (window.history.length > 1 && document.referrer && location.origin && location.origin !== 'null' && document.referrer.indexOf(location.origin) === 0) {
+            e.preventDefault();
+            window.history.back();
+          }
+        });
+      })();
+
     </script>
 </body>
 </html>

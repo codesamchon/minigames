@@ -452,6 +452,7 @@
 
         <!-- 2. 상단 클래식 메뉴바 및 빠른 도구 모음 -->
         <nav class="menubar select-none">
+            <a href="./index.html" id="btn-launcher" class="win-btn font-bold no-underline mr-0.5" style="text-decoration:none;" title="미니게임 런처로 돌아가기">🏠 런처</a>
             <!-- 게임(G) 드롭다운 -->
             <div class="relative">
                 <div id="trigger-game-menu" class="menu-trigger"><u>게임</u>(G)</div>
@@ -474,6 +475,10 @@
                     <div class="dropdown-sep"></div>
                     <button type="button" data-menu="cascade-demo" class="dropdown-item">
                         <span>승리 폭포 연출 보기(W)</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button type="button" data-menu="go-launcher" class="dropdown-item">
+                        <span>런처로 돌아가기(X)</span>
                     </button>
                 </div>
             </div>
@@ -2411,6 +2416,7 @@
                 else if (action === 'backs') openCardBacksModal();
                 else if (action === 'options') openOptionsModal();
                 else if (action === 'cascade-demo') cascadeController.start(0, true);
+                else if (action === 'go-launcher') document.getElementById('btn-launcher').click();
                 else if (action === 'howto') openHelpHowTo();
                 else if (action === 'about') openHelpAbout();
             });
@@ -2499,6 +2505,18 @@
         window.onload = () => {
             startNewGame(true);
         };
+    
+      (function() {
+        var btn = document.getElementById('btn-launcher');
+        if (!btn) return;
+        btn.addEventListener('click', function(e) {
+          if (window.history.length > 1 && document.referrer && location.origin && location.origin !== 'null' && document.referrer.indexOf(location.origin) === 0) {
+            e.preventDefault();
+            window.history.back();
+          }
+        });
+      })();
+
     </script>
 </body>
 </html>
