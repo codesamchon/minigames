@@ -5,33 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#0b1120" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#DED6C1" />
   <title>RETRO &amp; ARCADE MINI GAMES - 미니게임 아케이드 런처</title>
 
   <!-- 외부 CDN 없이 100% 오프라인에서 즉시 동작하는 자체 스타일시트 -->
   <style>
     /* =========================================================================
-       1. 디자인 토큰 & 다크 슬레이트 아케이드 테마 변수
+       1. 디자인 토큰 & 웜 뉴트럴 샌드(Color Hunt Palette) 테마 변수
+          Palette: #EBE2CC · #DED6C1 · #CFC6B1 · #B7B09E
        ========================================================================= */
     :root {
-      --bg-deep: #0b1120;
-      --bg-surface: #111827;
-      --bg-card: #172133;
-      --bg-card-hover: #1e293b;
-      --bg-elevated: #243247;
-      --border-subtle: rgba(148, 163, 184, 0.16);
-      --border-strong: rgba(148, 163, 184, 0.32);
+      /* 핵심 4색 팔레트 */
+      --pal-cream: #EBE2CC;   /* 1단계: 가장 밝은 웜 크림 (카드 & 메인 서피스) */
+      --pal-linen: #DED6C1;   /* 2단계: 소프트 리넨 베이지 (배경 & 내부 웰) */
+      --pal-stone: #CFC6B1;   /* 3단계: 뮤트 스톤 그레이지 (보조 바 & 태그/호버) */
+      --pal-taupe: #B7B09E;   /* 4단계: 딥 토프 (보더, 입체 베벨, 포인트 구조물) */
 
-      --text-primary: #f8fafc;
-      --text-secondary: #cbd5e1;
-      --text-muted: #94a3b8;
+      /* 가독성을 위한 웜 차콜/에스프레소 텍스트 및 딥 포인트 */
+      --ink-strong: #2B261F;
+      --ink-body: #4A4338;
+      --ink-muted: #6E6557;
+      --ink-cta: #3A342B;
+      --ink-cta-hover: #24201A;
 
-      --accent-cyan: #38bdf8;
-      --accent-emerald: #22c55e;
-      --accent-amber: #f59e0b;
-      --accent-violet: #a855f7;
-      --accent-rose: #fb7185;
+      --border-subtle: rgba(183, 176, 158, 0.65);
+      --border-strong: #9A917E;
 
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -51,8 +50,8 @@
 
     html {
       scroll-behavior: smooth;
-      background-color: var(--bg-deep);
-      color: var(--text-primary);
+      background-color: var(--pal-linen);
+      color: var(--ink-strong);
       font-family: var(--font-sans);
       -webkit-font-smoothing: antialiased;
     }
@@ -62,13 +61,13 @@
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
-      background-color: var(--bg-deep);
-      /* 은은한 아케이드 그리드 및 상단 네온 글로우 배경 */
+      background-color: var(--pal-linen);
+      /* 팔레트 4색이 어우러지는 은은한 그리드 및 상단 크림 광원 배경 */
       background-image:
-        radial-gradient(circle at 18% 0%, rgba(56, 189, 248, 0.13) 0%, transparent 46%),
-        radial-gradient(circle at 82% 6%, rgba(168, 85, 247, 0.12) 0%, transparent 44%),
-        linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+        radial-gradient(circle at 18% 0%, rgba(235, 226, 204, 0.85) 0%, transparent 50%),
+        radial-gradient(circle at 85% 12%, rgba(183, 176, 158, 0.35) 0%, transparent 46%),
+        linear-gradient(rgba(183, 176, 158, 0.28) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(183, 176, 158, 0.28) 1px, transparent 1px);
       background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
       padding-top: var(--safe-top);
       padding-bottom: var(--safe-bottom);
@@ -97,16 +96,16 @@
     }
 
     /* =========================================================================
-       2. 상단 헤더 영역 (타이틀, 6종 수록 배지, 랜덤 실행 버튼)
+       2. 상단 헤더 영역 (타이틀, 6종 수록 배지, 팔레트 스트립, 랜덤 실행 버튼)
        ========================================================================= */
     .hero-header {
-      background: linear-gradient(145deg, rgba(30, 41, 59, 0.86), rgba(15, 23, 42, 0.92));
-      border: 1px solid var(--border-subtle);
+      background: linear-gradient(145deg, var(--pal-cream) 0%, var(--pal-linen) 100%);
+      border: 1.5px solid var(--pal-taupe);
       border-radius: 22px;
       padding: 20px 20px;
       box-shadow:
-        0 18px 40px -16px rgba(0, 0, 0, 0.65),
-        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+        0 14px 30px -14px rgba(58, 52, 43, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -114,12 +113,30 @@
       overflow: hidden;
     }
 
+    /* 상단 4색 팔레트 시그니처 바 */
+    .hero-header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(
+        90deg,
+        #EBE2CC 0%, #EBE2CC 25%,
+        #DED6C1 25%, #DED6C1 50%,
+        #CFC6B1 50%, #CFC6B1 75%,
+        #B7B09E 75%, #B7B09E 100%
+      );
+      border-bottom: 1px solid rgba(183, 176, 158, 0.45);
+    }
+
     @media (min-width: 768px) {
       .hero-header {
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
-        padding: 24px 28px;
+        padding: 26px 28px 24px;
       }
     }
 
@@ -144,31 +161,31 @@
       border-radius: 999px;
       font-size: 0.74rem;
       font-weight: 800;
-      letter-spacing: 0.04em;
-      background: rgba(56, 189, 248, 0.14);
-      border: 1px solid rgba(56, 189, 248, 0.36);
-      color: #bae6fd;
+      letter-spacing: 0.03em;
+      background: var(--pal-stone);
+      border: 1px solid var(--pal-taupe);
+      color: var(--ink-strong);
     }
 
     .status-pill.offline {
-      background: rgba(34, 197, 94, 0.14);
-      border-color: rgba(34, 197, 94, 0.36);
-      color: #bbf7d0;
+      background: var(--pal-cream);
+      border-color: var(--pal-taupe);
+      color: var(--ink-body);
     }
 
     .status-dot {
       width: 7px;
       height: 7px;
       border-radius: 50%;
-      background: #4ade80;
-      box-shadow: 0 0 8px #4ade80;
+      background: #5B7B57;
+      box-shadow: 0 0 6px rgba(91, 123, 87, 0.55);
     }
 
     .hero-eyebrow {
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       font-weight: 900;
       letter-spacing: 0.09em;
-      color: var(--accent-cyan);
+      color: var(--ink-muted);
       text-transform: uppercase;
     }
 
@@ -177,16 +194,16 @@
       font-weight: 900;
       letter-spacing: -0.02em;
       line-height: 1.22;
-      color: #ffffff;
+      color: var(--ink-strong);
     }
 
     .hero-sub {
       font-size: 0.88rem;
-      color: var(--text-secondary);
+      color: var(--ink-body);
       line-height: 1.5;
     }
 
-    /* 랜덤 게임 실행 버튼 */
+    /* 랜덤 게임 실행 버튼 (레트로 키캡 입체감) */
     .hero-actions {
       display: flex;
       align-items: center;
@@ -198,9 +215,9 @@
       width: 100%;
       padding: 13px 20px;
       border-radius: 14px;
-      border: 1px solid rgba(250, 204, 21, 0.5);
-      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-      color: #0f172a;
+      border: 1.5px solid var(--ink-cta-hover);
+      background: linear-gradient(180deg, #474035 0%, var(--ink-cta) 100%);
+      color: var(--pal-cream);
       font-family: inherit;
       font-size: 0.92rem;
       font-weight: 900;
@@ -211,9 +228,9 @@
       justify-content: center;
       gap: 8px;
       box-shadow:
-        0 4px 0 #78350f,
-        0 10px 22px rgba(245, 158, 11, 0.28),
-        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+        0 4px 0 #1E1B16,
+        0 10px 20px rgba(43, 38, 31, 0.2),
+        inset 0 1px 0 rgba(235, 226, 204, 0.22);
       transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.1s ease;
     }
 
@@ -224,14 +241,14 @@
     }
 
     .random-btn:hover {
-      filter: brightness(1.07);
+      filter: brightness(1.08);
     }
 
     .random-btn:active {
       transform: translateY(3px);
       box-shadow:
-        0 1px 0 #78350f,
-        0 4px 10px rgba(245, 158, 11, 0.25);
+        0 1px 0 #1E1B16,
+        0 4px 10px rgba(43, 38, 31, 0.18);
     }
 
     .dice-icon {
@@ -254,9 +271,10 @@
       gap: 8px;
       overflow-x: auto;
       padding: 6px;
-      background: rgba(17, 24, 39, 0.85);
-      border: 1px solid var(--border-subtle);
+      background: var(--pal-stone);
+      border: 1.5px solid var(--pal-taupe);
       border-radius: 16px;
+      box-shadow: inset 0 1px 3px rgba(58, 52, 43, 0.08);
       scrollbar-width: none;
     }
 
@@ -270,7 +288,7 @@
       border-radius: 11px;
       border: 1px solid transparent;
       background: transparent;
-      color: var(--text-muted);
+      color: var(--ink-body);
       font-family: inherit;
       font-size: 0.86rem;
       font-weight: 800;
@@ -284,15 +302,15 @@
     }
 
     .filter-tab:hover {
-      color: var(--text-primary);
-      background: rgba(51, 65, 85, 0.42);
+      color: var(--ink-strong);
+      background: rgba(235, 226, 204, 0.65);
     }
 
     .filter-tab.active {
-      background: #2563eb;
-      border-color: #60a5fa;
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.38);
+      background: var(--pal-cream);
+      border-color: var(--border-strong);
+      color: var(--ink-strong);
+      box-shadow: 0 3px 10px rgba(58, 52, 43, 0.12);
     }
 
     /* =========================================================================
@@ -327,13 +345,13 @@
       gap: 16px;
       text-decoration: none;
       color: inherit;
-      background: linear-gradient(180deg, var(--bg-card) 0%, #121a29 100%);
-      border: 1px solid var(--border-subtle);
+      background: var(--pal-cream);
+      border: 1.5px solid var(--pal-taupe);
       border-radius: 20px;
       padding: 20px;
       box-shadow:
-        0 12px 28px -12px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        0 10px 24px -12px rgba(58, 52, 43, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
       transition:
         transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
         border-color 0.2s ease,
@@ -343,27 +361,27 @@
       overflow: hidden;
     }
 
-    /* 카드 상단 테마 컬러 액센트 라인 */
+    /* 카드 상단 차분한 테마 컬러 액센트 라인 */
     .game-card::before {
       content: "";
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 3px;
-      background: var(--card-accent, #38bdf8);
-      opacity: 0.85;
+      height: 4px;
+      background: var(--card-accent, var(--pal-taupe));
+      opacity: 0.9;
       transition: height 0.2s ease, opacity 0.2s ease;
     }
 
     .game-card:hover,
     .game-card:focus-visible {
       transform: translateY(-4px);
-      background: linear-gradient(180deg, var(--bg-card-hover) 0%, #162033 100%);
+      background: linear-gradient(180deg, #F2EAD7 0%, var(--pal-cream) 100%);
       border-color: var(--card-accent, var(--border-strong));
       box-shadow:
-        0 20px 36px -14px rgba(0, 0, 0, 0.72),
-        0 0 0 1px rgba(255, 255, 255, 0.06);
+        0 18px 32px -14px rgba(58, 52, 43, 0.26),
+        0 0 0 1px rgba(154, 145, 126, 0.28);
       outline: none;
     }
 
@@ -373,8 +391,8 @@
 
     /* 랜덤 선택 시 강조 효과 */
     .game-card.spotlight {
-      border-color: #facc15 !important;
-      box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.6), 0 20px 40px rgba(0, 0, 0, 0.8) !important;
+      border-color: var(--ink-strong) !important;
+      box-shadow: 0 0 0 3px var(--pal-taupe), 0 18px 36px rgba(43, 38, 31, 0.28) !important;
       transform: translateY(-5px) scale(1.015);
     }
 
@@ -410,13 +428,13 @@
       width: 64px;
       height: 64px;
       border-radius: 16px;
-      background: #0f172a;
-      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: var(--pal-linen);
+      border: 1.5px solid var(--pal-taupe);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.55);
+      box-shadow: inset 0 2px 4px rgba(58, 52, 43, 0.1);
       overflow: hidden;
     }
 
@@ -444,24 +462,24 @@
       border-radius: 999px;
       font-size: 0.7rem;
       font-weight: 800;
-      background: rgba(30, 41, 59, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      color: var(--text-secondary);
+      background: var(--pal-linen);
+      border: 1px solid var(--pal-taupe);
+      color: var(--ink-body);
     }
 
     .key-badge {
       width: 24px;
       height: 24px;
       border-radius: 7px;
-      background: #0f172a;
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      color: var(--text-muted);
+      background: var(--pal-stone);
+      border: 1px solid var(--pal-taupe);
+      color: var(--ink-strong);
       font-size: 0.72rem;
       font-weight: 900;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+      box-shadow: 0 2px 0 var(--pal-taupe);
     }
 
     /* 로컬 기록 배지 (스네이크 최고점수, 소코반 클리어 수 등) */
@@ -473,15 +491,15 @@
       border-radius: 999px;
       font-size: 0.71rem;
       font-weight: 800;
-      background: rgba(250, 204, 21, 0.15);
-      border: 1px solid rgba(250, 204, 21, 0.42);
-      color: #fef08a;
+      background: var(--pal-stone);
+      border: 1px solid var(--border-strong);
+      color: var(--ink-strong);
     }
 
     .record-badge.cleared {
-      background: rgba(34, 197, 94, 0.15);
-      border-color: rgba(34, 197, 94, 0.42);
-      color: #bbf7d0;
+      background: rgba(91, 123, 87, 0.15);
+      border-color: rgba(91, 123, 87, 0.45);
+      color: #354D32;
     }
 
     .record-badge.visible {
@@ -505,21 +523,21 @@
     .card-title {
       font-size: 1.18rem;
       font-weight: 900;
-      color: #ffffff;
+      color: var(--ink-strong);
       letter-spacing: -0.015em;
     }
 
     .card-subtitle {
       font-size: 0.74rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: var(--text-muted);
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
     }
 
     .card-desc {
       font-size: 0.85rem;
       line-height: 1.56;
-      color: var(--text-secondary);
+      color: var(--ink-body);
       word-break: keep-all;
     }
 
@@ -536,9 +554,9 @@
       border-radius: 8px;
       font-size: 0.72rem;
       font-weight: 700;
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      color: #e2e8f0;
+      background: var(--pal-linen);
+      border: 1px solid var(--border-subtle);
+      color: var(--ink-body);
     }
 
     /* 카드 하단: 파일 경로 표시 + 게임 실행 CTA 버튼 */
@@ -548,17 +566,17 @@
       justify-content: space-between;
       gap: 10px;
       padding-top: 12px;
-      border-top: 1px solid rgba(148, 163, 184, 0.12);
+      border-top: 1px solid rgba(183, 176, 158, 0.55);
     }
 
     .file-label {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.72rem;
-      color: var(--text-muted);
-      background: rgba(15, 23, 42, 0.65);
+      color: var(--ink-muted);
+      background: var(--pal-linen);
       padding: 4px 8px;
       border-radius: 6px;
-      border: 1px solid rgba(148, 163, 184, 0.14);
+      border: 1px solid var(--border-subtle);
     }
 
     .play-cta {
@@ -570,14 +588,17 @@
       border-radius: 10px;
       font-size: 0.82rem;
       font-weight: 900;
-      background: var(--card-accent, #2563eb);
-      color: var(--cta-text, #0b1120);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-      transition: transform 0.15s ease, filter 0.15s ease;
+      background: var(--ink-cta);
+      color: var(--pal-cream);
+      border: 1px solid var(--ink-cta-hover);
+      box-shadow: 0 3px 8px rgba(43, 38, 31, 0.18);
+      transition: transform 0.15s ease, background 0.15s ease;
     }
 
     .game-card:hover .play-cta {
-      filter: brightness(1.1);
+      background: var(--card-accent, var(--ink-cta-hover));
+      color: #FAF6EC;
+      border-color: transparent;
       transform: translateX(2px);
     }
 
@@ -585,15 +606,15 @@
        5. 하단 안내 푸터
        ========================================================================= */
     .launcher-footer {
-      background: rgba(17, 24, 39, 0.78);
-      border: 1px solid var(--border-subtle);
+      background: var(--pal-stone);
+      border: 1.5px solid var(--pal-taupe);
       border-radius: 16px;
       padding: 15px 18px;
       display: flex;
       flex-direction: column;
       gap: 8px;
       font-size: 0.8rem;
-      color: var(--text-muted);
+      color: var(--ink-body);
       line-height: 1.55;
     }
 
@@ -607,18 +628,19 @@
     }
 
     .footer-guide strong {
-      color: var(--text-primary);
+      color: var(--ink-strong);
       font-weight: 800;
     }
 
     .footer-code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      background: #0f172a;
-      color: #7dd3fc;
+      background: var(--pal-cream);
+      color: var(--ink-strong);
       padding: 1px 6px;
       border-radius: 5px;
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      border: 1px solid var(--pal-taupe);
       font-size: 0.76rem;
+      font-weight: 700;
     }
 
     .shortcut-hint {
@@ -627,7 +649,7 @@
       flex-wrap: wrap;
       gap: 6px;
       white-space: nowrap;
-      color: var(--text-secondary);
+      color: var(--ink-strong);
       font-weight: 700;
     }
 
@@ -639,12 +661,12 @@
       height: 22px;
       padding: 0 6px;
       border-radius: 6px;
-      background: #1e293b;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      box-shadow: 0 2px 0 #090d16;
+      background: var(--pal-cream);
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 2px 0 var(--pal-taupe);
       font-size: 0.72rem;
       font-weight: 900;
-      color: #f8fafc;
+      color: var(--ink-strong);
     }
   </style>
 </head>
@@ -708,13 +730,13 @@
          class="game-card"
          data-category="arcade"
          data-index="1"
-         style="--card-accent: #22c55e; --cta-text: #052e16;"
+         style="--card-accent: #52734D;"
          aria-label="1번 게임: 스네이크 (Arcade Snake) 실행">
         <div class="card-top">
           <div class="icon-box" aria-hidden="true">
             <!-- 맞춤형 스네이크 & 사과 & 골든스타 SVG 일러스트 -->
             <svg viewBox="0 0 64 64" fill="none">
-              <rect x="4" y="4" width="56" height="56" rx="12" fill="#132032" stroke="#f43f5e" stroke-width="2.5"/>
+              <rect x="4" y="4" width="56" height="56" rx="12" fill="#182232" stroke="#B7B09E" stroke-width="2.2"/>
               <!-- 스네이크 몸통 및 머리 -->
               <rect x="12" y="36" width="11" height="11" rx="3.5" fill="#16a34a" stroke="#090d16" stroke-width="1.5"/>
               <rect x="12" y="24" width="11" height="11" rx="3.5" fill="#22c55e" stroke="#090d16" stroke-width="1.5"/>
@@ -765,13 +787,13 @@
          class="game-card"
          data-category="arcade"
          data-index="2"
-         style="--card-accent: #38bdf8; --cta-text: #082f49;"
+         style="--card-accent: #4A6B78;"
          aria-label="2번 게임: 네온 쿼스 (NEON QUARTH) 실행">
         <div class="card-top">
           <div class="icon-box" aria-hidden="true">
             <!-- 맞춤형 네온 쿼스 블록 홀 & 스타파이터 SVG 일러스트 -->
             <svg viewBox="0 0 64 64" fill="none">
-              <rect x="4" y="4" width="56" height="56" rx="12" fill="#070c1f" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="4" y="4" width="56" height="56" rx="12" fill="#0c1326" stroke="#B7B09E" stroke-width="2.2"/>
               <!-- 상단 하강 도형 (빈 홈 포함) -->
               <rect x="15" y="10" width="10" height="10" rx="2.5" fill="#e879f9" stroke="#a21caf" stroke-width="1.2"/>
               <rect x="27" y="10" width="10" height="10" rx="2.5" fill="#e879f9" stroke="#a21caf" stroke-width="1.2"/>
@@ -819,13 +841,13 @@
          class="game-card"
          data-category="puzzle"
          data-index="3"
-         style="--card-accent: #f59e0b; --cta-text: #1c1917;"
+         style="--card-accent: #9C6639;"
          aria-label="3번 게임: 창고지기 (소코반 퍼즐) 실행">
         <div class="card-top">
           <div class="icon-box" aria-hidden="true">
             <!-- 맞춤형 소코반 나무 상자 & 적벽돌 & 초록 목표점 SVG 일러스트 -->
             <svg viewBox="0 0 64 64" fill="none">
-              <rect x="4" y="4" width="56" height="56" rx="12" fill="#1e293b" stroke="#ea580c" stroke-width="2.5"/>
+              <rect x="4" y="4" width="56" height="56" rx="12" fill="#242c38" stroke="#B7B09E" stroke-width="2.2"/>
               <!-- 우상단 초록 목표 다이아몬드 -->
               <polygon points="46,12 53,19 46,26 39,19" fill="#10b981" stroke="#a7f3d0" stroke-width="1.5"/>
               <!-- 황금빛 나무 상자 -->
@@ -872,13 +894,13 @@
          class="game-card"
          data-category="puzzle"
          data-index="4"
-         style="--card-accent: #10b981; --cta-text: #022c22;"
+         style="--card-accent: #3F6A58;"
          aria-label="4번 게임: 프리미엄 오셀로 (Reversi) 실행">
         <div class="card-top">
           <div class="icon-box" aria-hidden="true">
             <!-- 맞춤형 오셀로 그린 보드 & 흑백 3D 디스크 SVG 일러스트 -->
             <svg viewBox="0 0 64 64" fill="none">
-              <rect x="4" y="4" width="56" height="56" rx="12" fill="#047857" stroke="#3e2723" stroke-width="3"/>
+              <rect x="4" y="4" width="56" height="56" rx="12" fill="#047857" stroke="#3e2723" stroke-width="2.6"/>
               <line x1="32" y1="6" x2="32" y2="58" stroke="#022c22" stroke-width="1.6"/>
               <line x1="6" y1="32" x2="58" y2="32" stroke="#022c22" stroke-width="1.6"/>
               <!-- 백돌 2개 -->
@@ -925,13 +947,13 @@
          class="game-card"
          data-category="classic"
          data-index="5"
-         style="--card-accent: #60a5fa; --cta-text: #0f172a;"
+         style="--card-accent: #4E5E75;"
          aria-label="5번 게임: 지뢰 찾기 (Classic Minesweeper) 실행">
         <div class="card-top">
           <div class="icon-box" aria-hidden="true">
             <!-- 맞춤형 클래식 윈도우 지뢰 찾기 베벨 & 스마일 & 깃발/지뢰 SVG 일러스트 -->
             <svg viewBox="0 0 64 64" fill="none" shape-rendering="crispEdges">
-              <rect x="4" y="4" width="56" height="56" fill="#c0c0c0" stroke="#ffffff" stroke-width="2"/>
+              <rect x="4" y="4" width="56" height="56" fill="#c0c0c0" stroke="#808080" stroke-width="2"/>
               <rect x="6" y="6" width="52" height="10" fill="#000080"/>
               <!-- 노란 스마일 -->
               <circle cx="32" cy="24" r="6" fill="#ffff00" stroke="#000000" stroke-width="1.3"/>
@@ -986,13 +1008,13 @@
          class="game-card"
          data-category="classic"
          data-index="6"
-         style="--card-accent: #c084fc; --cta-text: #1e1b4b;"
+         style="--card-accent: #765864;"
          aria-label="6번 게임: 카드놀이 (Classic Solitaire) 실행">
         <div class="card-top">
           <div class="icon-box" aria-hidden="true">
             <!-- 맞춤형 클래식 솔리테어 플레잉 카드 & 초록 테이블 SVG 일러스트 -->
             <svg viewBox="0 0 64 64" fill="none">
-              <rect x="4" y="4" width="56" height="56" rx="12" fill="#008000" stroke="#c0c0c0" stroke-width="2.2"/>
+              <rect x="4" y="4" width="56" height="56" rx="12" fill="#008000" stroke="#9A917E" stroke-width="2.2"/>
               <!-- 뒷면 파란 체크 카드 -->
               <rect x="11" y="13" width="24" height="34" rx="3" fill="#0b3d91" stroke="#ffffff" stroke-width="1.8"/>
               <path d="M15 20 H31 M15 27 H31 M15 34 H31 M15 41 H31" stroke="#60a5fa" stroke-width="1.2" opacity="0.75"/>
@@ -1038,7 +1060,7 @@
          ===================================================================== -->
     <footer class="launcher-footer">
       <p class="footer-guide">
-        💡 이 파일을 <span class="footer-code">index.html</span>로 저장해 6개의 미니게임 HTML 파일과 같은 폴더에 두면 오프라인에서도 모든 게임 링크와 런처 복귀 버튼(<span class="footer-code">snake.html</span> 내 런처 버튼 등)이 완벽히 연동됩니다.
+        💡 이 파일을 <span class="footer-code">index.html</span>로 저장해 6개의 미니게임 HTML 파일과 같은 폴더에 두면 오프라인 및 GitHub Pages에서 모든 게임 링크와 런처 복귀 버튼이 완벽히 연동됩니다.
       </p>
       <div class="shortcut-hint" aria-label="키보드 단축키 안내">
         <span>단축키:</span>
@@ -1136,7 +1158,6 @@
 
           if (matches) {
             card.classList.remove('hidden-card');
-            // 순차적인 부드러운 등장 애니메이션 부여
             card.style.animationDelay = `${visibleOrder * 35}ms`;
             void card.offsetWidth;
             card.classList.add('fade-in');
