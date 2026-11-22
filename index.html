@@ -96,7 +96,7 @@
     }
 
     /* =========================================================================
-       2. 상단 헤더 영역 (타이틀, 6종 수록 배지, 팔레트 스트립, 랜덤 실행 버튼)
+       2. 상단 헤더 영역 (타이틀, 7종 수록 배지, 팔레트 스트립, 랜덤 실행 버튼)
        ========================================================================= */
     .hero-header {
       background: linear-gradient(145deg, var(--pal-cream) 0%, var(--pal-linen) 100%);
@@ -314,7 +314,7 @@
     }
 
     /* =========================================================================
-       4. 6종 미니게임 카드 그리드 & 개별 카드 디자인
+       4. 7종 미니게임 카드 그리드 & 개별 카드 디자인
        ========================================================================= */
     .games-grid {
       display: grid;
@@ -673,7 +673,7 @@
     <header class="hero-header">
       <div class="hero-title-group">
         <div class="hero-badges">
-          <span class="status-pill">🎮 총 6종 수록</span>
+          <span class="status-pill">🎮 총 7종 수록</span>
           <span class="status-pill offline">
             <span class="status-dot" aria-hidden="true"></span>
             100% OFFLINE READY
@@ -684,12 +684,12 @@
           <h1 class="hero-heading">미니게임 아케이드 런처</h1>
         </div>
         <p class="hero-sub">
-          인터넷 연결 없이 모바일과 PC 어디서나 즉시 즐길 수 있는 아케이드 · 퍼즐 · 클래식 Windows 컬렉션
+          인터넷 연결 없이 모바일과 PC 어디서나 즉시 즐길 수 있는 아케이드 · 퍼즐 · 메모리 · 클래식 Windows 컬렉션
         </p>
       </div>
 
       <div class="hero-actions">
-        <button type="button" class="random-btn" id="randomLaunchBtn" title="6종 게임 중 하나를 무작위로 실행합니다 (단축키: R)">
+        <button type="button" class="random-btn" id="randomLaunchBtn" title="7종 게임 중 하나를 무작위로 실행합니다 (단축키: R)">
           <span class="dice-icon" aria-hidden="true">🎲</span>
           <span>랜덤 게임 실행</span>
         </button>
@@ -701,7 +701,7 @@
          ===================================================================== -->
     <nav class="filter-bar" aria-label="게임 카테고리 필터" role="tablist">
       <button type="button" class="filter-tab active" data-filter="all" role="tab" aria-selected="true">
-        전체 (6)
+        전체 (7)
       </button>
       <button type="button" class="filter-tab" data-filter="arcade" role="tab" aria-selected="false">
         ⚡ 아케이드 (2)
@@ -709,13 +709,16 @@
       <button type="button" class="filter-tab" data-filter="puzzle" role="tab" aria-selected="false">
         🧩 퍼즐 · 보드 (2)
       </button>
+      <button type="button" class="filter-tab" data-filter="memory" role="tab" aria-selected="false">
+        🧠 메모리 · 두뇌 (1)
+      </button>
       <button type="button" class="filter-tab" data-filter="classic" role="tab" aria-selected="false">
         🪟 클래식 Windows (2)
       </button>
     </nav>
 
     <!-- =====================================================================
-         6종 미니게임 카드 그리드
+         7종 미니게임 카드 그리드
          ===================================================================== -->
     <main class="games-grid" id="gamesGrid">
 
@@ -1047,6 +1050,64 @@
         </div>
       </a>
 
+      <!-- 7. 사운드 메모리 (Icon & Sound Memory) -->
+      <a href="./memory-v2.html"
+         class="game-card"
+         data-category="memory"
+         data-index="7"
+         style="--card-accent: #5E5473;"
+         aria-label="7번 게임: 사운드 메모리 (Icon &amp; Sound Memory) 실행">
+        <div class="card-top">
+          <div class="icon-box" aria-hidden="true">
+            <!-- 맞춤형 사운드 메모리 4색 벡터 아이콘 패드 & 음표 SVG 일러스트 -->
+            <svg viewBox="0 0 64 64" fill="none">
+              <rect x="4" y="4" width="56" height="56" rx="12" fill="#0f172a" stroke="#B7B09E" stroke-width="2.2"/>
+              <!-- 좌상단 레드 서클 타일 -->
+              <rect x="10" y="10" width="19" height="19" rx="5" fill="#f8fafc"/>
+              <circle cx="19.5" cy="19.5" r="6" fill="#ef4444" stroke="#1e293b" stroke-width="1.4"/>
+              <!-- 우상단 시안 스타 타일 (하이라이트) -->
+              <rect x="35" y="10" width="19" height="19" rx="5" fill="#f8fafc" stroke="#38bdf8" stroke-width="1.8"/>
+              <polygon points="44.5,12.8 46.5,17 51.1,17.6 47.7,20.8 48.6,25.4 44.5,23.2 40.4,25.4 41.3,20.8 37.9,17.6 42.5,17" fill="#06b6d4" stroke="#1e293b" stroke-width="1.1" stroke-linejoin="round"/>
+              <!-- 좌하단 그린 클로버/다이아 타일 -->
+              <rect x="10" y="35" width="19" height="19" rx="5" fill="#f8fafc"/>
+              <polygon points="19.5,38 26,44.5 19.5,51 13,44.5" fill="#22c55e" stroke="#1e293b" stroke-width="1.3" stroke-linejoin="round"/>
+              <!-- 우하단 퍼플 음표 타일 -->
+              <rect x="35" y="35" width="19" height="19" rx="5" fill="#f8fafc"/>
+              <path d="M42.5 48.5V39.5L50 38V47" stroke="#1e293b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="40.5" cy="48.8" r="2.6" fill="#a855f7" stroke="#1e293b" stroke-width="1.1"/>
+              <circle cx="48" cy="47.3" r="2.6" fill="#a855f7" stroke="#1e293b" stroke-width="1.1"/>
+            </svg>
+          </div>
+          <div class="card-meta-right">
+            <div class="cat-row">
+              <span class="category-badge">🧠 메모리 · 두뇌</span>
+              <span class="key-badge" title="단축키 7">7</span>
+            </div>
+            <span class="record-badge" id="memoryRecordBadge">🏆 최고 시퀀스: 0</span>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="card-title-row">
+            <h2 class="card-title">사운드 메모리</h2>
+            <span class="card-subtitle">ICON &amp; SOUND MEMORY</span>
+          </div>
+          <p class="card-desc">
+            순서대로 나타나는 고선명 벡터 아이콘과 사운드를 기억한 뒤 제한 시간 안에 똑같이 입력하는 시청각 순발력·기억력 트레이닝 게임.
+          </p>
+          <div class="tag-list">
+            <span class="feature-tag">20종 랜덤 아이콘</span>
+            <span class="feature-tag">표시·간격 설정</span>
+            <span class="feature-tag">시청각 시퀀스</span>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="file-label">./memory-v2.html</span>
+          <span class="play-cta">게임 실행 ▶</span>
+        </div>
+      </a>
+
     </main>
 
     <!-- =====================================================================
@@ -1054,11 +1115,11 @@
          ===================================================================== -->
     <footer class="launcher-footer">
       <p class="footer-guide">
-        💡 이 파일을 <span class="footer-code">index.html</span>로 저장해 6개의 미니게임 HTML 파일과 같은 폴더에 두면 오프라인 및 GitHub Pages에서 모든 게임 링크와 런처 복귀 버튼이 완벽히 연동됩니다.
+        💡 이 파일을 <span class="footer-code">index.html</span>로 저장해 7개의 미니게임 HTML 파일과 같은 폴더에 두면 오프라인 및 GitHub Pages에서 모든 게임 링크와 런처 복귀 버튼이 완벽히 연동됩니다.
       </p>
       <div class="shortcut-hint" aria-label="키보드 단축키 안내">
         <span>단축키:</span>
-        <span class="kbd-chip">1</span>~<span class="kbd-chip">6</span>
+        <span class="kbd-chip">1</span>~<span class="kbd-chip">7</span>
         <span>게임 바로 실행</span>
         <span>·</span>
         <span class="kbd-chip">R</span>
@@ -1080,6 +1141,7 @@
       const randomLaunchBtn = document.getElementById('randomLaunchBtn');
       const snakeRecordBadge = document.getElementById('snakeRecordBadge');
       const sokobanRecordBadge = document.getElementById('sokobanRecordBadge');
+      const memoryRecordBadge = document.getElementById('memoryRecordBadge');
 
       let isNavigatingRandom = false;
 
@@ -1133,6 +1195,23 @@
         } catch (err) {
           // 로컬 스토리지 접근 제한 환경에서도 안전하게 무시
         }
+
+        // (3) 사운드 메모리(memory-v2.html) 최고 시퀀스 기록 조회
+        try {
+          const rawMemory = localStorage.getItem('shape_sound_memory_records_v1');
+          if (rawMemory && memoryRecordBadge) {
+            const parsedMemory = JSON.parse(rawMemory);
+            const bestSeq = Number(parsedMemory && parsedMemory.bestClearedSeq) || 0;
+            if (bestSeq > 0) {
+              memoryRecordBadge.textContent = `🏆 최고 시퀀스: ${bestSeq}단계`;
+              memoryRecordBadge.classList.add('visible');
+            } else {
+              memoryRecordBadge.classList.remove('visible');
+            }
+          }
+        } catch (err) {
+          // 로컬 스토리지 접근 제한 환경에서도 안전하게 무시
+        }
       }
 
       /**
@@ -1170,7 +1249,7 @@
       });
 
       /**
-       * 3. 랜덤 게임 실행 (현재 화면에 표시 중이거나 전체 6개 중 무작위 선택 후 이동)
+       * 3. 랜덤 게임 실행 (현재 화면에 표시 중이거나 전체 7개 중 무작위 선택 후 이동)
        */
       function launchRandomGame() {
         if (isNavigatingRandom) return;
@@ -1197,7 +1276,7 @@
 
       /**
        * 4. 키보드 단축키 지원
-       * - 숫자키 1 ~ 6: 해당 번호의 미니게임으로 즉시 이동
+       * - 숫자키 1 ~ 7: 해당 번호의 미니게임으로 즉시 이동
        * - R 키: 랜덤 게임 실행
        */
       window.addEventListener('keydown', (e) => {
@@ -1205,7 +1284,7 @@
         const activeTag = document.activeElement ? document.activeElement.tagName : '';
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
 
-        if (e.key >= '1' && e.key <= '6') {
+        if (e.key >= '1' && e.key <= '7') {
           const targetCard = gameCards.find((c) => c.dataset.index === e.key);
           if (targetCard) {
             e.preventDefault();
