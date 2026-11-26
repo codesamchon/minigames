@@ -1,0 +1,3002 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#090d16" />
+  <title>오픈월드 미스터 두 (Mr. Do! 10×10 Open-World)</title>
+
+  <style>
+    :root {
+      --bg-deep: #090d16;
+      --bg-panel: #131c2e;
+      --bg-elevated: #1e293b;
+      --border-crisp: #334155;
+      --border-bright: #475569;
+      --text-main: #f8fafc;
+      --text-sub: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent-red: #ef4444;
+      --accent-gold: #facc15;
+      --accent-green: #22c55e;
+      --accent-cyan: #38bdf8;
+      --accent-pink: #f472b6;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --font-ui: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 0%, #17223b 0%, #090d16 75%);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      overscroll-behavior: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 600px;
+      height: 100dvh;
+      margin: 0 auto;
+      padding: calc(6px + var(--safe-top)) 10px calc(8px + var(--safe-bottom));
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    /* 1. Top HUD */
+    .top-hud {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-crisp);
+      border-radius: 14px;
+      padding: 5px 8px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      flex-shrink: 0;
+    }
+
+    .nav-btn, .icon-btn {
+      height: 34px;
+      border-radius: 9px;
+      border: 1px solid var(--border-bright);
+      background: #243247;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.76rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+
+    .nav-btn { padding: 0 9px; white-space: nowrap; }
+    .icon-btn { width: 34px; font-size: 0.92rem; }
+    .nav-btn:hover, .icon-btn:hover { background: #334155; }
+    .nav-btn:active, .icon-btn:active { transform: scale(0.93); }
+
+    .score-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .score-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.08;
+    }
+
+    .score-lbl {
+      font-size: 0.56rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .score-val {
+      font-size: 1.02rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+    }
+
+    .score-val.gold { color: var(--accent-gold); }
+
+    .hud-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-crisp);
+    }
+
+    .extra-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      background: #090d16;
+      padding: 3px 5px;
+      border-radius: 8px;
+      border: 1px solid var(--border-crisp);
+    }
+
+    .extra-char {
+      width: 17px;
+      height: 20px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 900;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #475569;
+      background: #111827;
+      transition: all 0.18s ease;
+    }
+
+    .extra-char.lit {
+      color: #090d16;
+      background: var(--accent-gold);
+      box-shadow: 0 0 8px rgba(250, 204, 21, 0.75);
+    }
+
+    .extra-char.target {
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .hud-btns {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 2. Status Sub-Strip */
+    .sub-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 0 2px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .strip-left, .strip-right {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .pill-stat {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.69rem;
+      font-weight: 800;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-crisp);
+      color: var(--text-sub);
+      font-variant-numeric: tabular-nums;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pill-stat.one-life {
+      border-color: rgba(248, 113, 113, 0.5);
+      color: #fecaca;
+      background: rgba(239, 68, 68, 0.14);
+    }
+
+    .pill-stat.ball-ready {
+      border-color: #38bdf8;
+      color: #e0f2fe;
+      background: rgba(56, 189, 248, 0.16);
+    }
+
+    .pill-stat.ball-wait {
+      border-color: #f59e0b;
+      color: #fef3c7;
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .pill-stat.freeze-on {
+      border-color: #f472b6;
+      color: #fce7f3;
+      background: rgba(244, 114, 182, 0.22);
+      animation: pulseGlow 0.65s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { transform: scale(1); }
+      to   { transform: scale(1.04); }
+    }
+
+    /* 3. Main Viewport Stage */
+    .viewport-wrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #05070d;
+      border: 2px solid var(--border-crisp);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), inset 0 0 24px rgba(0, 0, 0, 0.8);
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+    }
+
+    /* Live 10x10 Minimap Overlay */
+    .minimap-card {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(9, 13, 22, 0.86);
+      border: 1.5px solid rgba(148, 163, 184, 0.45);
+      border-radius: 10px;
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+      cursor: pointer;
+      z-index: 6;
+      transition: transform 0.15s ease;
+    }
+
+    .minimap-card.expanded {
+      transform: scale(1.45);
+      transform-origin: top right;
+    }
+
+    .minimap-hdr {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      font-size: 0.58rem;
+      font-weight: 900;
+      color: #e2e8f0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #minimapCanvas {
+      width: 80px;
+      height: 80px;
+      image-rendering: pixelated;
+      display: block;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #0b1120;
+    }
+
+    /* Toast Banner inside Viewport */
+    .stage-toast {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      max-width: calc(100% - 110px);
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1.5px solid #38bdf8;
+      color: #f8fafc;
+      font-size: 0.74rem;
+      font-weight: 900;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stage-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 4. Bottom Arcade Controller Deck */
+    .control-bar {
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border: 1.5px solid var(--border-crisp);
+      border-radius: 16px;
+      padding: 7px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+      touch-action: none;
+    }
+
+    .dpad-wrap {
+      display: grid;
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(2, 42px);
+      gap: 4px;
+      touch-action: none;
+    }
+
+    .dpad-btn {
+      border-radius: 10px;
+      border: 1.5px solid #64748b;
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      color: #f8fafc;
+      font-size: 1.05rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #090d16;
+      touch-action: none;
+    }
+
+    .dpad-btn.active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #090d16;
+      background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+      border-color: #fca5a5;
+    }
+
+    .dpad-up    { grid-column: 2; grid-row: 1; }
+    .dpad-left  { grid-column: 1; grid-row: 2; }
+    .dpad-down  { grid-column: 2; grid-row: 2; }
+    .dpad-right { grid-column: 3; grid-row: 2; }
+
+    .ctrl-mid-hint {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 3px;
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .legend-dots {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 5px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: var(--text-sub);
+    }
+
+    .ldot {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .ldot i {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .fire-btn {
+      width: 108px;
+      height: 88px;
+      border-radius: 16px;
+      border: 2px solid #7dd3fc;
+      background: radial-gradient(circle at 50% 32%, #38bdf8 0%, #0284c7 65%, #0369a1 100%);
+      color: #ffffff;
+      font-family: inherit;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #075985, 0 8px 18px rgba(2, 132, 199, 0.4);
+      flex-shrink: 0;
+      touch-action: manipulation;
+    }
+
+    .fire-btn:active, .fire-btn.pressed {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #075985;
+    }
+
+    .fire-btn.cooldown {
+      background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+      border-color: #64748b;
+      box-shadow: 0 3px 0 #0f172a;
+      color: #94a3b8;
+    }
+
+    .fire-icon { font-size: 1.35rem; line-height: 1; }
+    .fire-lbl  { font-size: 0.78rem; font-weight: 900; }
+    .fire-sub  { font-size: 0.6rem; font-weight: 800; opacity: 0.88; }
+
+    @media (max-width: 420px) {
+      .ctrl-mid-hint { display: none; }
+      .dpad-wrap { grid-template-columns: repeat(3, 45px); grid-template-rows: repeat(2, 40px); }
+      .fire-btn { width: 104px; height: 84px; }
+    }
+
+    /* 5. Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(5, 8, 16, 0.88);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal-box {
+      width: 100%;
+      max-width: 430px;
+      max-height: 90dvh;
+      overflow-y: auto;
+      background: #162033;
+      border: 1.5px solid #475569;
+      border-radius: 22px;
+      padding: 20px 18px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+    }
+
+    .modal-badge {
+      padding: 4px 11px;
+      border-radius: 999px;
+      font-size: 0.69rem;
+      font-weight: 900;
+      letter-spacing: 0.07em;
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid #f87171;
+      color: #fecaca;
+    }
+
+    .modal-title {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .modal-desc {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      line-height: 1.48;
+      word-break: keep-all;
+    }
+
+    .guide-list {
+      width: 100%;
+      background: #0b1120;
+      border: 1px solid var(--border-crisp);
+      border-radius: 13px;
+      padding: 11px 12px;
+      text-align: left;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      line-height: 1.55;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .guide-list strong { color: #facc15; }
+
+    .primary-cta {
+      width: 100%;
+      height: 46px;
+      border-radius: 13px;
+      border: 1px solid #fca5a5;
+      background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.96rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    }
+
+    .secondary-cta {
+      width: 100%;
+      height: 40px;
+      border-radius: 11px;
+      border: 1px solid var(--border-bright);
+      background: #243247;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .stats-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: #0b1120;
+      border: 1px solid var(--border-crisp);
+      border-radius: 12px;
+      padding: 10px 8px;
+    }
+
+    .stat-card-lbl {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .stat-card-val {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-top: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .record-tag {
+      display: none;
+      padding: 3px 11px;
+      border-radius: 999px;
+      background: rgba(250, 204, 21, 0.2);
+      border: 1px solid #facc15;
+      color: #fef08a;
+      font-size: 0.74rem;
+      font-weight: 900;
+    }
+
+    .record-tag.show { display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- 1. Top HUD -->
+    <header class="top-hud">
+      <a href="./index.html" class="nav-btn" id="btnLauncher" title="미니게임 런처로 복귀">
+        🏠 런처
+      </a>
+
+      <div class="score-cluster">
+        <div class="score-item">
+          <span class="score-lbl">SCORE</span>
+          <span class="score-val" id="hudScore">0</span>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="score-item">
+          <span class="score-lbl">BEST</span>
+          <span class="score-val gold" id="hudBest">0</span>
+        </div>
+        <div class="hud-divider"></div>
+        <div class="extra-bar" title="보너스 케익으로 알파벳 몬스터를 소환해 EXTRA 완성 시 대량 보너스!">
+          <span class="extra-char" id="extE">E</span>
+          <span class="extra-char" id="extX">X</span>
+          <span class="extra-char" id="extT">T</span>
+          <span class="extra-char" id="extR">R</span>
+          <span class="extra-char" id="extA">A</span>
+        </div>
+      </div>
+
+      <div class="hud-btns">
+        <button type="button" class="icon-btn" id="btnMute" title="BGM 및 효과음 켜기/끄기 (M)">🔊</button>
+        <button type="button" class="icon-btn" id="btnPause" title="일시정지 및 도움말 (P)">⏸️</button>
+      </div>
+    </header>
+
+    <!-- 2. Sub Status Strip -->
+    <div class="sub-strip">
+      <div class="strip-left">
+        <span class="pill-stat one-life" id="hudLives" title="사망 시 처음부터 완전히 새로 시작합니다">🤡 단판 도전</span>
+        <span class="pill-stat ball-ready" id="hudBall">🔮 파워볼 READY</span>
+      </div>
+      <div class="strip-right">
+        <span class="pill-stat" id="hudSector">📍 칸 (1,1)</span>
+        <span class="pill-stat" id="hudConquest">🗺️ 정복 0% (0/400)</span>
+      </div>
+    </div>
+
+    <!-- 3. Seamless Open-World Viewport + 10x10 Minimap -->
+    <main class="viewport-wrap" id="viewportWrap">
+      <canvas id="gameCanvas" width="416" height="480"></canvas>
+
+      <div class="stage-toast" id="stageToast">칸 (1, 1) 진입! 스포너 가동!</div>
+
+      <div class="minimap-card" id="minimapCard" title="터치/클릭하면 미니맵 크기를 확대·축소합니다">
+        <div class="minimap-hdr">
+          <span>10×10 WORLD</span>
+          <span id="miniPct">0/100</span>
+        </div>
+        <canvas id="minimapCanvas" width="80" height="80"></canvas>
+      </div>
+    </main>
+
+    <!-- 4. Bottom Controller Deck -->
+    <section class="control-bar">
+      <div class="dpad-wrap" id="dpadWrap">
+        <button type="button" class="dpad-btn dpad-up" data-dir="UP" aria-label="위">▲</button>
+        <button type="button" class="dpad-btn dpad-left" data-dir="LEFT" aria-label="왼쪽">◀</button>
+        <button type="button" class="dpad-btn dpad-down" data-dir="DOWN" aria-label="아래">▼</button>
+        <button type="button" class="dpad-btn dpad-right" data-dir="RIGHT" aria-label="오른쪽">▶</button>
+      </div>
+
+      <div class="ctrl-mid-hint">
+        <div class="legend-dots">
+          <span class="ldot"><i style="background:#ef4444;"></i>적교전</span>
+          <span class="ldot"><i style="background:#facc15;"></i>케익</span>
+          <span class="ldot"><i style="background:#22c55e;"></i>정복</span>
+        </div>
+        <span>플레이어 이속 +10% · 적 땅파기 불가</span>
+        <span>사과 밑 대기 시 플레이어 이동 후 낙하</span>
+      </div>
+
+      <button type="button" class="fire-btn" id="btnFire">
+        <span class="fire-icon">🔮</span>
+        <span class="fire-lbl" id="fireBtnLbl">파워볼</span>
+        <span class="fire-sub">SPACE / Z</span>
+      </button>
+    </section>
+
+    <!-- Start / Pause Modal -->
+    <div class="modal-backdrop open" id="startModal">
+      <div class="modal-box">
+        <span class="modal-badge">1982 UNIVERSAL ARCADE · 10×10 OPEN WORLD</span>
+        <h1 class="modal-title" id="startModalTitle">오픈월드 미스터 두!</h1>
+        <p class="modal-desc" id="startModalDesc">
+          가로 10칸 × 세로 10칸(총 100칸)의 거대한 단일 지하 세계를 심리스 스크롤로 탐험하며 정복하세요!
+        </p>
+
+        <div class="guide-list">
+          <div>• <strong>터널 전용 추격 &amp; 사과 받치기:</strong> 모든 적은 <strong>절대 흙을 파지 못하며</strong> 뚫린 터널로만 이동합니다. 또한 <strong>🍎 사과 바로 밑에 미스터 두가 있으면 사과가 떨어지지 않고 버티며, 미스터 두가 이동한 직후 낙하</strong>해 뒤따라오는 적을 압사시키기 좋습니다!</div>
+          <div>• <strong>칸 진입 스포너 &amp; +10% 쾌속 기동:</strong> 새로운 칸에 들어가면 중앙 둥지에서 <strong>1초 간격으로 적 4마리</strong>가 생성되며, 미스터 두는 적보다 <strong>10% 빠른 이동속도</strong>로 쾌적하게 기동합니다.</div>
+          <div>• <strong>보너스 케익 &amp; EXTRA:</strong> 한 칸의 적 4마리 생성 직후 <strong>🍰 보너스 케익</strong>이 출현합니다. 섭취 시 일반 적이 정지하고 터널 내에 <strong>알파벳 몬스터(E·X·T·R·A) + 파란 보디가드</strong>가 등장하며, 5글자 완성 시 <strong>+10,000점 &amp; 활성 적 일소 보너스</strong> 후 초기화됩니다.</div>
+          <div>• <strong>단판 도전 (사망 시 완전 초기화):</strong> 사망하면 잔기 이어하기 없이 <strong>좌측 최상단 시작 지점(1,1)으로 즉시 이동해 완전히 새로운 월드</strong>에서 다시 시작합니다!</div>
+        </div>
+
+        <button type="button" class="primary-cta" id="btnStartPlay">아케이드 도전 시작 ▶</button>
+        <button type="button" class="secondary-cta" id="btnResumePlay" style="display:none;">게임 계속하기 ↻</button>
+      </div>
+    </div>
+
+    <!-- Victory Modal -->
+    <div class="modal-backdrop" id="endModal">
+      <div class="modal-box">
+        <div class="record-tag" id="newRecordTag">🏆 신기록 달성!</div>
+        <span class="modal-badge" id="endBadge" style="border-color:#4ade80; color:#bbf7d0;">ALL CLEAR VICTORY!</span>
+        <h2 class="modal-title" id="endTitle">🎉 10×10 월드 완전 정복!</h2>
+        <p class="modal-desc" id="endReason">10×10 오픈월드 탐험 기록입니다.</p>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-lbl">최종 점수</div>
+            <div class="stat-card-val" id="endScore" style="color:#facc15;">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-lbl">최대 정복률 (최고기록)</div>
+            <div class="stat-card-val" id="endConquest" style="color:#22c55e;">100%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-lbl">처치한 스포너 적</div>
+            <div class="stat-card-val" id="endKills" style="color:#38bdf8;">400 / 400</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-lbl">정복 완료 섹터 / 체리</div>
+            <div class="stat-card-val" id="endSectors">100칸</div>
+          </div>
+        </div>
+
+        <button type="button" class="primary-cta" id="btnRestart">처음부터 새 도전 ▶</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /* =====================================================================
+         1. WORLD & GAME CONSTANTS
+         ===================================================================== */
+      const TILE = 32;
+      const SEC_COLS = 12;
+      const SEC_ROWS = 15;
+      const WORLD_SECS_X = 10;
+      const WORLD_SECS_Y = 10;
+      const TOTAL_SECTORS = WORLD_SECS_X * WORLD_SECS_Y; // 100 sectors
+      const ENEMIES_PER_SECTOR = 4;
+      const TOTAL_SPAWNER_ENEMIES = TOTAL_SECTORS * ENEMIES_PER_SECTOR; // 400 enemies
+
+      const WORLD_COLS = SEC_COLS * WORLD_SECS_X; // 120 tiles
+      const WORLD_ROWS = SEC_ROWS * WORLD_SECS_Y; // 150 tiles
+      const WORLD_CELLS = WORLD_COLS * WORLD_ROWS; // 18,000 cells
+      const WORLD_W = WORLD_COLS * TILE;          // 3840 px
+      const WORLD_H = WORLD_ROWS * TILE;          // 4800 px
+
+      const VIEW_W = 416; // 13 tiles wide
+      const VIEW_H = 480; // 15 tiles tall (exact 1-stage height)
+
+      const START_SEC_X = 0; // Top-left sector (Display: 칸 1,1)
+      const START_SEC_Y = 0;
+      const START_COL = START_SEC_X * SEC_COLS + 1; // Top-left corner tile (1,1) inside sector (1,1)
+      const START_ROW = START_SEC_Y * SEC_ROWS + 1;
+
+      // Speed settings: Player moves 10% faster than Monsters!
+      const ENEMY_SPEED  = 4.35 * TILE;        // 139.2 px/sec for all Monsters
+      const PLAYER_SPEED = ENEMY_SPEED * 1.10; // 153.12 px/sec (+10% faster) for Mr. Do!
+      const BALL_SPEED   = 9.0 * TILE;
+      const APPLE_FALL_SPEED = 7.6 * TILE;
+
+      const T_TUNNEL = 0;
+      const T_DIRT   = 1;
+      const T_CHERRY = 2;
+
+      const DIRS = {
+        UP:    { dx: 0,  dy: -1, code: 'UP',    opp: 'DOWN'  },
+        DOWN:  { dx: 0,  dy: 1,  code: 'DOWN',  opp: 'UP'    },
+        LEFT:  { dx: -1, dy: 0,  code: 'LEFT',  opp: 'RIGHT' },
+        RIGHT: { dx: 1,  dy: 0,  code: 'RIGHT', opp: 'LEFT'  }
+      };
+      const DIR_LIST = [DIRS.UP, DIRS.RIGHT, DIRS.DOWN, DIRS.LEFT];
+      const EXTRA_WORD = ['E', 'X', 'T', 'R', 'A'];
+
+      const STORAGE_KEY = 'mrdo_openworld_best_v1';
+
+      /* =====================================================================
+         2. RETRO PIXEL SPRITE FACTORY (16x16 Crisp Pixel Matrices)
+         ===================================================================== */
+      const PAL = {
+        '.': null,
+        'W': '#ffffff',
+        'R': '#ef4444',
+        'D': '#991b1b',
+        'F': '#fed7aa',
+        'K': '#0f172a',
+        'Y': '#facc15',
+        'O': '#f97316',
+        'G': '#22c55e',
+        'E': '#15803d',
+        'B': '#3b82f6',
+        'C': '#38bdf8',
+        'N': '#1d4ed8',
+        'P': '#f472b6',
+        'M': '#ec4899',
+        'S': '#94a3b8'
+      };
+
+      function makeSprite(rows, scale = 2, customMap = null) {
+        const h = rows.length;
+        const w = rows[0].length;
+        const c = document.createElement('canvas');
+        c.width = w * scale;
+        c.height = h * scale;
+        const cx = c.getContext('2d');
+        for (let y = 0; y < h; y++) {
+          const row = rows[y];
+          for (let x = 0; x < w; x++) {
+            const ch = row[x];
+            const col = (customMap && customMap[ch] !== undefined) ? customMap[ch] : PAL[ch];
+            if (col) {
+              cx.fillStyle = col;
+              cx.fillRect(x * scale, y * scale, scale, scale);
+            }
+          }
+        }
+        return c;
+      }
+
+      const SPRITES = {};
+      function buildSprites() {
+        // Mr. Do! Frame 1 & 2 (16x16 -> 32x32)
+        const mrDo1 = [
+          "......WW........",
+          ".....WWWW.......",
+          "....RRRRRR......",
+          "...RRRRRRRR.....",
+          "...WWFFFFWW.....",
+          "..WWFKWWKFWW....",
+          "...WFFRRFFW.....",
+          "...WWFFFFWW.....",
+          "..RRRRWWWRRRR...",
+          ".RRRWWWWWWWRRR..",
+          ".WW.RRRRRRRR.WW.",
+          "....RRRRRRRR....",
+          "...RRRR..RRRR...",
+          "..RRRR....RRRR..",
+          "..WWW......WWW..",
+          "................"
+        ];
+        const mrDo2 = [
+          ".......WW.......",
+          "......WWWW......",
+          "....RRRRRR......",
+          "...RRRRRRRR.....",
+          "...WWFFFFWW.....",
+          "..WWFKWWKFWW....",
+          "...WFFRRFFW.....",
+          "...WWFFFFWW.....",
+          "...RRRWWWRRR....",
+          "..RRWWWWWWWRR...",
+          "..WWRRRRRRRWW...",
+          "....RRRRRRRR....",
+          "....RRR..RRR....",
+          "...WWW....WWW...",
+          "................",
+          "................"
+        ];
+        SPRITES.mrDo = [makeSprite(mrDo1, 2), makeSprite(mrDo2, 2)];
+
+        // Red Chaser Monster (Classic Universal Dino-Monster)
+        const mon1 = [
+          "....YY....YY....",
+          "...YYYY..YYYY...",
+          "..RRRRRRRRRRRR..",
+          ".RRRRRRRRRRRRRR.",
+          ".RRWWKRRRRWWKRR.",
+          ".RRWWKRRRRWWKRR.",
+          ".RRRRRRRRRRRRRR.",
+          "..RRRWWWWWWWRR..",
+          "..RRW.W..W.WRR..",
+          "..RRRRRRRRRRRR..",
+          "...RRRRRRRRRR...",
+          "..RRRRRRRRRRRR..",
+          "..RRR..RR..RRR..",
+          ".YYY........YYY.",
+          "................",
+          "................"
+        ];
+        const mon2 = [
+          "....YY....YY....",
+          "...YYYY..YYYY...",
+          "..RRRRRRRRRRRR..",
+          ".RRRRRRRRRRRRRR.",
+          ".RRKWWKRRKWWKRR.",
+          ".RRWWWRRRWWWRRR.",
+          ".RRRRRRRRRRRRRR.",
+          "..RRRRRRRRRRRR..",
+          "..RRWWWWWWWWRR..",
+          "...RRRRRRRRRR...",
+          "..RRRRRRRRRRRR..",
+          "...RRR.RR.RRR...",
+          "....YY....YY....",
+          "...YYY....YYY...",
+          "................",
+          "................"
+        ];
+        SPRITES.chaser = [makeSprite(mon1, 2), makeSprite(mon2, 2)];
+        SPRITES.frozen = [
+          makeSprite(mon1, 2, { 'R': '#64748b', 'Y': '#cbd5e1' }),
+          makeSprite(mon2, 2, { 'R': '#475569', 'Y': '#94a3b8' })
+        ];
+        SPRITES.guard = [
+          makeSprite(mon1, 2, { 'R': '#2563eb', 'Y': '#38bdf8' }),
+          makeSprite(mon2, 2, { 'R': '#1d4ed8', 'Y': '#93c5fd' })
+        ];
+        SPRITES.alphaBase = [
+          makeSprite(mon1, 2, { 'R': '#a855f7', 'Y': '#facc15' }),
+          makeSprite(mon2, 2, { 'R': '#9333ea', 'Y': '#fde047' })
+        ];
+
+        // Cherry (16x16)
+        SPRITES.cherry = makeSprite([
+          ".........GG.....",
+          ".......GGGG.....",
+          "......GG..G.....",
+          ".....G....G.....",
+          "....G....G......",
+          "...RRRR..G......",
+          "..RRRRRR.RRRR...",
+          "..RWWRRRRRRRRR..",
+          "..RRRRRRRRWWRR..",
+          "..RRRRRRRRRRRR..",
+          "...RRRR..RRRRR..",
+          ".........RRRR...",
+          "................",
+          "................",
+          "................",
+          "................"
+        ], 2);
+
+        // Apple (16x16)
+        const appleMat = [
+          ".......EE.GG....",
+          ".......EEGGG....",
+          "....RRRRRERRR...",
+          "..RRRRRRRRRRRR..",
+          ".RRRWWRRRRRRRRR.",
+          ".RRWWWRRRRRRRRR.",
+          ".RRRRRRRRRRRRRR.",
+          ".RRRRRRRRRRRRRR.",
+          ".RRRRRRRRRRRRRR.",
+          ".RRRRRRRRRRRRDR.",
+          "..RRRRRRRRRRDDR.",
+          "..RRRRRRRRRDDDR.",
+          "...RRRRRRRRDDR..",
+          "....RRRR.RRRR...",
+          "................",
+          "................"
+        ];
+        SPRITES.apple = makeSprite(appleMat, 2);
+
+        // Split Apple Halves
+        SPRITES.appleLeft = makeSprite(appleMat.map((r) => r.slice(0, 8) + "........"), 2);
+        SPRITES.appleRight = makeSprite(appleMat.map((r) => "........" + r.slice(8)), 2);
+
+        // Bonus Cake (Strawberry Cream Cake!)
+        SPRITES.cake = makeSprite([
+          ".......RR.......",
+          "......RRRR......",
+          "......WWWW......",
+          "...WWWWWWWWWW...",
+          "..WWWRRWWWRRWW..",
+          "..WWWWWWWWWWWW..",
+          "..PPPPPPPPPPPP..",
+          "..OOOOOOOOOOOO..",
+          ".WWWWWWWWWWWWWW.",
+          ".OOOOOOOOOOOOOO.",
+          ".YYYYYYYYYYYYYY.",
+          "..WWWWWWWWWWWW..",
+          "................",
+          "................",
+          "................",
+          "................"
+        ], 2);
+
+        // Pre-baked Textured Retro Dirt Tiles (4 classic Mr. Do biome palettes across rings)
+        const biomes = [
+          { base: '#155e36', hi: '#228b4e', lo: '#0c3b21', dot: '#4ade80' }, // Classic Emerald Soil
+          { base: '#7c3a16', hi: '#a34e1f', lo: '#4d220b', dot: '#fb923c' }, // Classic Amber Clay
+          { base: '#1e3a6e', hi: '#2b5299', lo: '#112244', dot: '#60a5fa' }, // Classic Cobalt Strata
+          { base: '#582866', hi: '#77378a', lo: '#361640', dot: '#e879f9' }  // Deep Violet Cavern
+        ];
+
+        SPRITES.dirtTiles = biomes.map((b) => {
+          const dc = document.createElement('canvas');
+          dc.width = TILE;
+          dc.height = TILE;
+          const dx = dc.getContext('2d');
+          dx.fillStyle = b.base;
+          dx.fillRect(0, 0, TILE, TILE);
+          dx.fillStyle = b.hi;
+          for (let py = 0; py < TILE; py += 8) {
+            const offset = (py % 16 === 0) ? 0 : 8;
+            dx.fillRect((offset + 2) % TILE, py + 2, 6, 2);
+            dx.fillRect((offset + 18) % TILE, py + 2, 6, 2);
+          }
+          dx.fillStyle = b.lo;
+          for (let py = 0; py < TILE; py += 8) {
+            dx.fillRect(0, py + 7, TILE, 1);
+          }
+          dx.fillStyle = b.dot;
+          dx.fillRect(6, 5, 2, 2);
+          dx.fillRect(22, 13, 2, 2);
+          dx.fillRect(12, 21, 2, 2);
+          dx.fillRect(26, 29, 2, 2);
+          return dc;
+        });
+      }
+
+      /* =====================================================================
+         3. CHIPTUNE WEB AUDIO ENGINE (Offenbach's Can-Can + Arcade SFX)
+         ===================================================================== */
+      const Sound = (function () {
+        let ctx = null;
+        let muted = false;
+        let bgmTimer = null;
+        let stepIdx = 0;
+        let nextNoteTime = 0;
+        let alphaMode = false;
+
+        function m2f(midi) {
+          return 440 * Math.pow(2, (midi - 69) / 12);
+        }
+
+        // Offenbach's "Infernal Galop (Can-Can)" in C Major
+        const CANCAN_STEPS = [
+          [72, 48], [0, 55], [72, 52], [0, 55], [74, 48], [77, 55], [76, 52], [74, 55],
+          [79, 43], [0, 55], [79, 50], [0, 55], [79, 43], [81, 55], [76, 50], [77, 55],
+          [74, 43], [0, 55], [74, 50], [0, 55], [74, 43], [77, 55], [76, 50], [74, 55],
+          [72, 48], [84, 55], [83, 52], [81, 55], [79, 43], [77, 50], [76, 48], [74, 43],
+          [72, 48], [0, 55], [72, 52], [0, 55], [74, 48], [77, 55], [76, 52], [74, 55],
+          [79, 43], [0, 55], [79, 50], [0, 55], [79, 43], [81, 55], [76, 50], [77, 55],
+          [74, 43], [0, 55], [74, 50], [0, 55], [74, 43], [77, 55], [76, 50], [74, 55],
+          [72, 48], [0, 55], [79, 43], [0, 50], [72, 48], [0, 0], [60, 36], [0, 0]
+        ];
+
+        // Tense Alpha Monster Squad Loop
+        const ALPHA_STEPS = [
+          [75, 48], [0, 48], [78, 51], [0, 51], [81, 54], [0, 54], [78, 51], [0, 51],
+          [76, 49], [0, 49], [79, 52], [0, 52], [82, 55], [0, 55], [79, 52], [0, 52]
+        ];
+
+        function unlock() {
+          if (!ctx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) ctx = new AC();
+          }
+          if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+          return ctx;
+        }
+
+        function schedTone(freq, tStart, dur, type, vol, slideTo = 0) {
+          if (muted || !ctx || freq <= 0) return;
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, tStart);
+          if (slideTo > 0) osc.frequency.exponentialRampToValueAtTime(slideTo, tStart + dur);
+          g.gain.setValueAtTime(0.0001, tStart);
+          g.gain.linearRampToValueAtTime(vol, tStart + 0.008);
+          g.gain.exponentialRampToValueAtTime(0.0001, tStart + dur);
+          osc.connect(g);
+          g.connect(ctx.destination);
+          osc.start(tStart);
+          osc.stop(tStart + dur + 0.015);
+        }
+
+        function schedulerTick() {
+          if (!ctx || muted) return;
+          const stepDur = alphaMode ? 0.12 : 0.132;
+          const seq = alphaMode ? ALPHA_STEPS : CANCAN_STEPS;
+
+          while (nextNoteTime < ctx.currentTime + 0.18) {
+            const pair = seq[stepIdx % seq.length];
+            if (pair[0] > 0) {
+              schedTone(m2f(pair[0]), nextNoteTime, stepDur * 0.78, 'square', 0.045);
+            }
+            if (pair[1] > 0) {
+              schedTone(m2f(pair[1]), nextNoteTime, stepDur * 0.65, 'triangle', 0.055);
+            }
+            nextNoteTime += stepDur;
+            stepIdx++;
+          }
+        }
+
+        function startBgm() {
+          const ac = unlock();
+          if (!ac) return;
+          if (bgmTimer) clearInterval(bgmTimer);
+          nextNoteTime = ac.currentTime + 0.05;
+          bgmTimer = setInterval(schedulerTick, 60);
+        }
+
+        function stopBgm() {
+          if (bgmTimer) {
+            clearInterval(bgmTimer);
+            bgmTimer = null;
+          }
+        }
+
+        function nowSfx(f1, f2, dur, type, vol, delay = 0) {
+          if (muted) return;
+          const ac = unlock();
+          if (!ac) return;
+          schedTone(f1, ac.currentTime + delay, dur, type, vol, f2);
+        }
+
+        return {
+          unlock,
+          startBgm,
+          stopBgm,
+          setAlphaMode(flag) {
+            if (alphaMode !== flag) {
+              alphaMode = flag;
+              stepIdx = 0;
+            }
+          },
+          setMuted(m) {
+            muted = m;
+            if (!muted && ctx) nextNoteTime = ctx.currentTime + 0.05;
+          },
+          isMuted() { return muted; },
+          dig() { nowSfx(150, 190, 0.035, 'triangle', 0.055); },
+          cherry(chain) {
+            const notes = [523, 587, 659, 698, 784, 880, 987, 1046];
+            const f = notes[Math.min(7, Math.max(0, chain - 1))];
+            nowSfx(f, f * 1.06, 0.08, 'square', 0.09);
+            if (chain === 8) {
+              nowSfx(1046, 1318, 0.12, 'square', 0.11, 0.08);
+              nowSfx(1318, 1568, 0.18, 'square', 0.12, 0.18);
+            }
+          },
+          throwBall() { nowSfx(880, 420, 0.09, 'sine', 0.1); },
+          bounce() { nowSfx(960, 1280, 0.04, 'sine', 0.06); },
+          catchBall() { nowSfx(620, 920, 0.07, 'triangle', 0.09); },
+          killEnemy() {
+            nowSfx(280, 720, 0.11, 'square', 0.11);
+            nowSfx(720, 1120, 0.14, 'square', 0.1, 0.08);
+          },
+          spawnerPop() { nowSfx(330, 520, 0.08, 'sawtooth', 0.07); },
+          cakeSpawn() {
+            nowSfx(659, 784, 0.09, 'triangle', 0.1, 0);
+            nowSfx(784, 1046, 0.14, 'triangle', 0.11, 0.09);
+          },
+          eatCake() {
+            [523, 659, 784, 1046].forEach((n, i) => nowSfx(n, n, 0.09, 'square', 0.11, i * 0.075));
+          },
+          appleCrack() { nowSfx(210, 95, 0.13, 'sawtooth', 0.11); },
+          extraFanfare() {
+            [523, 659, 784, 1046, 1318, 1568].forEach((n, i) => nowSfx(n, n, 0.11, 'square', 0.13, i * 0.08));
+          },
+          die() {
+            [440, 392, 349, 311, 261, 196, 130].forEach((n, i) => nowSfx(n, n * 0.9, 0.11, 'sawtooth', 0.12, i * 0.09));
+          }
+        };
+      })();
+
+      /* =====================================================================
+         4. GAME STATE & TUNNEL FLOW-FIELD STRUCTURES
+         ===================================================================== */
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const miniCanvas = document.getElementById('minimapCanvas');
+      const miniCtx = miniCanvas.getContext('2d');
+
+      const grid = new Uint8Array(WORLD_CELLS);
+      const bfsDist = new Int16Array(WORLD_CELLS);
+      const bfsQueue = new Int32Array(WORLD_CELLS);
+      let bfsTimer = 0;
+      let lastBfsCol = -1;
+      let lastBfsRow = -1;
+
+      let sectors = []; // 100 sectors
+      let apples = [];
+      let cakes = [];
+      let enemies = [];
+      let popups = [];
+      let particles = [];
+
+      // gameState: 'TITLE' | 'READY' | 'PLAYING' | 'DYING' | 'PAUSED' | 'ENDED'
+      let gameState = 'TITLE';
+      let score = 0;
+      let bestScore = 0;
+      let bestConquestPct = 0;
+      let lastRunSummary = null; // Shown on READY banner right after death reset
+      let extraCollected = [false, false, false, false, false];
+      let totalCherries = 0;
+      let harvestedCherries = 0;
+      let spawnerKills = 0;
+      let clearedSectorCount = 0;
+      let freezeTimer = 0;
+      let deathTimer = 0;
+      let animClock = 0;
+
+      const player = {
+        x: 0,
+        y: 0,
+        dir: DIRS.RIGHT,
+        moving: false,
+        cherryChain: 0,
+        cherryGrace: 0
+      };
+
+      const ball = {
+        state: 'READY', // 'READY' | 'FLYING' | 'RECHARGING'
+        x: 0,
+        y: 0,
+        dir: DIRS.RIGHT,
+        age: 0,
+        recharge: 0
+      };
+
+      const cam = { x: 0, y: 0 };
+
+      /* =====================================================================
+         5. PERSISTENCE & WORLD GENERATION (10x10 = 100 SECTORS)
+         ===================================================================== */
+      function loadRecords() {
+        try {
+          const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          if (raw) {
+            if (typeof raw.bestScore === 'number') bestScore = raw.bestScore;
+            if (typeof raw.bestConquestPct === 'number') bestConquestPct = raw.bestConquestPct;
+          }
+        } catch (e) {}
+      }
+
+      function saveRecords() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ bestScore, bestConquestPct }));
+        } catch (e) {}
+      }
+
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function setTile(c, r, val) {
+        if (c >= 0 && c < WORLD_COLS && r >= 0 && r < WORLD_ROWS) {
+          grid[r * WORLD_COLS + c] = val;
+        }
+      }
+
+      function getTile(c, r) {
+        if (c < 0 || c >= WORLD_COLS || r < 0 || r >= WORLD_ROWS) return -1;
+        return grid[r * WORLD_COLS + c];
+      }
+
+      function hasAppleAt(c, r, ignoreApple = null) {
+        for (let i = 0; i < apples.length; i++) {
+          const a = apples[i];
+          if (a === ignoreApple || a.state === 'SPLITTING' || a.state === 'FALLING') continue;
+          if (a.col === c && a.row === r) return a;
+        }
+        return null;
+      }
+
+      function buildOpenWorld() {
+        grid.fill(T_DIRT);
+        bfsDist.fill(-1);
+        lastBfsCol = -1;
+        lastBfsRow = -1;
+
+        sectors = [];
+        apples = [];
+        cakes = [];
+        enemies = [];
+        popups = [];
+        particles = [];
+        totalCherries = 0;
+        harvestedCherries = 0;
+        spawnerKills = 0;
+        clearedSectorCount = 0;
+
+        for (let sy = 0; sy < WORLD_SECS_Y; sy++) {
+          for (let sx = 0; sx < WORLD_SECS_X; sx++) {
+            const idx = sy * WORLD_SECS_X + sx;
+            const ox = sx * SEC_COLS;
+            const oy = sy * SEC_ROWS;
+            const spawnerCol = ox + 6;
+            const spawnerRow = oy + 7;
+
+            // Distance-based biome color (0..3) radiating from top-left start (0, 0) toward (9, 9)
+            const distRing = Math.min(3, Math.floor(Math.hypot(sx, sy) / 3.2));
+
+            sectors.push({
+              idx,
+              sx,
+              sy,
+              spawnerCol,
+              spawnerRow,
+              biome: distRing,
+              activated: false,
+              spawned: 0,
+              spawnCooldown: 0,
+              aliveFromSector: 0,
+              killsFromSector: 0,
+              cakeSpawned: false,
+              cleared: false
+            });
+
+            // 1) Carve Classic Mr. Do! Stage Internal Tunnel connected to Spawner (ox+4..7, oy+3..11)
+            // Note: Kept strictly inside columns ox+4..ox+7 so 2x4 cherry blocks (ox+2..3 / ox+8..9) stay 100% intact
+            // and sector borders remain solid dirt until the player digs through!
+            setTile(spawnerCol - 1, spawnerRow, T_TUNNEL);
+            setTile(spawnerCol,     spawnerRow, T_TUNNEL);
+            setTile(spawnerCol + 1, spawnerRow, T_TUNNEL);
+
+            const pattern = (sx * 3 + sy * 5) % 4;
+            for (let ry = oy + 3; ry <= oy + 11; ry++) {
+              setTile(spawnerCol, ry, T_TUNNEL);
+            }
+            if (pattern === 0) {
+              for (let cx = ox + 4; cx <= ox + 7; cx++) {
+                setTile(cx, oy + 3, T_TUNNEL);
+                setTile(cx, oy + 11, T_TUNNEL);
+              }
+            } else if (pattern === 1) {
+              for (let cx = ox + 4; cx <= ox + 7; cx++) {
+                setTile(cx, oy + 7, T_TUNNEL);
+              }
+              setTile(ox + 4, oy + 6, T_TUNNEL);
+              setTile(ox + 7, oy + 8, T_TUNNEL);
+            } else if (pattern === 2) {
+              for (let cx = ox + 4; cx <= ox + 6; cx++) setTile(cx, oy + 3, T_TUNNEL);
+              for (let cx = ox + 6; cx <= ox + 7; cx++) setTile(cx, oy + 11, T_TUNNEL);
+            } else {
+              for (let cx = ox + 4; cx <= ox + 7; cx++) setTile(cx, oy + 11, T_TUNNEL);
+              setTile(ox + 5, oy + 3, T_TUNNEL);
+              setTile(ox + 7, oy + 3, T_TUNNEL);
+            }
+
+            // Starting sector (0, 0) -> Display (1, 1): carve top-left starter runway (col 1..6, row 1) and connect cleanly to center tunnel (col 6, row 2..3)
+            if (sx === START_SEC_X && sy === START_SEC_Y) {
+              for (let px = ox + 1; px <= spawnerCol; px++) {
+                setTile(px, oy + 1, T_TUNNEL);
+              }
+              setTile(spawnerCol, oy + 2, T_TUNNEL);
+              setTile(spawnerCol, oy + 3, T_TUNNEL);
+            }
+
+            // 2) Place 8-Cherry Cluster (2x4 block) in columns ox+2..3 or ox+8..9
+            const cherryLeft = Math.random() < 0.5 ? ox + 2 : ox + 8;
+            const cherryTop  = Math.random() < 0.5 ? oy + 4 : oy + 7;
+            for (let dy = 0; dy < 4; dy++) {
+              for (let dx = 0; dx < 2; dx++) {
+                const cc = cherryLeft + dx;
+                const cr = cherryTop + dy;
+                if (getTile(cc, cr) === T_DIRT) {
+                  setTile(cc, cr, T_CHERRY);
+                  totalCherries++;
+                }
+              }
+            }
+
+            // 3) Place 4 Apples per sector on valid DIRT tiles (not on bottom world row, not above tunnels)
+            let placedApples = 0;
+            let guard = 0;
+            while (placedApples < 4 && guard < 80) {
+              guard++;
+              const ac = ox + randInt(1, SEC_COLS - 2);
+              const ar = oy + randInt(2, SEC_ROWS - 3);
+              if (ar >= WORLD_ROWS - 2) continue;
+              if (Math.abs(ac - spawnerCol) <= 1 && Math.abs(ar - spawnerRow) <= 2) continue;
+              if (sx === START_SEC_X && sy === START_SEC_Y && ar <= oy + 3 && ac <= ox + 7) continue;
+              if (getTile(ac, ar) !== T_DIRT) continue;
+              if (getTile(ac, ar + 1) === T_TUNNEL) continue;
+              if (hasAppleAt(ac, ar)) continue;
+
+              apples.push({
+                sx,
+                sy,
+                col: ac,
+                row: ar,
+                x: ac * TILE + TILE / 2,
+                y: ar * TILE + TILE / 2,
+                targetX: ac * TILE + TILE / 2,
+                state: 'IDLE', // 'IDLE' | 'PUSHING' | 'WOBBLE' | 'FALLING' | 'SPLITTING'
+                heldByPlayer: false,
+                timer: 0,
+                fallStartRow: ar,
+                crushedCount: 0
+              });
+              setTile(ac, ar, T_TUNNEL);
+              placedApples++;
+            }
+          }
+        }
+      }
+
+      /* =====================================================================
+         6. TUNNEL-ONLY BFS FLOW FIELD (Smart Pursuit Without Digging!)
+         ===================================================================== */
+      function rebuildTunnelDistanceMap(force = false) {
+        const pCol = Math.floor(player.x / TILE);
+        const pRow = Math.floor(player.y / TILE);
+        if (!force && pCol === lastBfsCol && pRow === lastBfsRow && bfsTimer > 0) return;
+
+        lastBfsCol = pCol;
+        lastBfsRow = pRow;
+        bfsTimer = 0.12;
+
+        bfsDist.fill(-1);
+        if (pCol < 0 || pCol >= WORLD_COLS || pRow < 0 || pRow >= WORLD_ROWS) return;
+
+        const startCell = pRow * WORLD_COLS + pCol;
+        bfsDist[startCell] = 0;
+        let head = 0;
+        let tail = 0;
+        bfsQueue[tail++] = startCell;
+
+        while (head < tail) {
+          const cur = bfsQueue[head++];
+          const d = bfsDist[cur];
+          if (d >= 260) continue; // Plenty of range across multiple 12x15 sectors
+
+          const c = cur % WORLD_COLS;
+          const r = (cur - c) / WORLD_COLS;
+
+          // Up
+          if (r > 0) {
+            const ni = cur - WORLD_COLS;
+            if (bfsDist[ni] === -1 && grid[ni] === T_TUNNEL && !hasAppleAt(c, r - 1)) {
+              bfsDist[ni] = d + 1;
+              bfsQueue[tail++] = ni;
+            }
+          }
+          // Down
+          if (r + 1 < WORLD_ROWS) {
+            const ni = cur + WORLD_COLS;
+            if (bfsDist[ni] === -1 && grid[ni] === T_TUNNEL && !hasAppleAt(c, r + 1)) {
+              bfsDist[ni] = d + 1;
+              bfsQueue[tail++] = ni;
+            }
+          }
+          // Left
+          if (c > 0) {
+            const ni = cur - 1;
+            if (bfsDist[ni] === -1 && grid[ni] === T_TUNNEL && !hasAppleAt(c - 1, r)) {
+              bfsDist[ni] = d + 1;
+              bfsQueue[tail++] = ni;
+            }
+          }
+          // Right
+          if (c + 1 < WORLD_COLS) {
+            const ni = cur + 1;
+            if (bfsDist[ni] === -1 && grid[ni] === T_TUNNEL && !hasAppleAt(c + 1, r)) {
+              bfsDist[ni] = d + 1;
+              bfsQueue[tail++] = ni;
+            }
+          }
+        }
+      }
+
+      /* =====================================================================
+         7. TOASTS, POPUPS & HUD UPDATES
+         ===================================================================== */
+      const toastEl = document.getElementById('stageToast');
+      let toastTimeout = null;
+      function showToast(msg, borderColor = '#38bdf8') {
+        toastEl.textContent = msg;
+        toastEl.style.borderColor = borderColor;
+        toastEl.classList.add('show');
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toastEl.classList.remove('show'), 2200);
+      }
+
+      function addPopup(x, y, text, color = '#facc15') {
+        popups.push({ x, y, text, color, life: 0.95 });
+      }
+
+      function addBurst(x, y, color, count = 10) {
+        for (let i = 0; i < count; i++) {
+          const ang = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+          const spd = 45 + Math.random() * 95;
+          particles.push({
+            x, y,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            color,
+            life: 0.35 + Math.random() * 0.25
+          });
+        }
+      }
+
+      function addScore(pts, x, y, color) {
+        score += pts;
+        if (score > bestScore) {
+          bestScore = score;
+          saveRecords();
+        }
+        if (x !== undefined && y !== undefined) {
+          addPopup(x, y - 8, String(pts), color || '#facc15');
+        }
+      }
+
+      function getConquestPct() {
+        return Math.min(100, Math.floor((spawnerKills / TOTAL_SPAWNER_ENEMIES) * 100));
+      }
+
+      function nextTargetExtraIdx() {
+        for (let i = 0; i < 5; i++) {
+          if (!extraCollected[i]) return i;
+        }
+        return 0;
+      }
+
+      const domScore = document.getElementById('hudScore');
+      const domBest = document.getElementById('hudBest');
+      const domBall = document.getElementById('hudBall');
+      const domSector = document.getElementById('hudSector');
+      const domConquest = document.getElementById('hudConquest');
+      const domMiniPct = document.getElementById('miniPct');
+      const btnFire = document.getElementById('btnFire');
+      const fireBtnLbl = document.getElementById('fireBtnLbl');
+      const extEls = EXTRA_WORD.map((ch) => document.getElementById('ext' + ch));
+
+      function updateHUD() {
+        domScore.textContent = score.toLocaleString();
+        domBest.textContent = bestScore.toLocaleString();
+
+        const targetIdx = nextTargetExtraIdx();
+        for (let i = 0; i < 5; i++) {
+          extEls[i].classList.toggle('lit', extraCollected[i]);
+          extEls[i].classList.toggle('target', !extraCollected[i] && i === targetIdx);
+        }
+
+        if (freezeTimer > 0) {
+          domBall.className = 'pill-stat freeze-on';
+          domBall.textContent = `❄️ 적 정지 ${freezeTimer.toFixed(1)}s`;
+        } else if (ball.state === 'READY') {
+          domBall.className = 'pill-stat ball-ready';
+          domBall.textContent = '🔮 파워볼 READY';
+        } else if (ball.state === 'FLYING') {
+          domBall.className = 'pill-stat ball-wait';
+          domBall.textContent = '🔮 파워볼 비행중';
+        } else {
+          const pct = Math.min(99, Math.floor(ball.recharge * 100));
+          domBall.className = 'pill-stat ball-wait';
+          domBall.textContent = `🔮 충전 ${pct}%`;
+        }
+
+        const readyVisual = ball.state === 'READY';
+        btnFire.classList.toggle('cooldown', !readyVisual);
+        fireBtnLbl.textContent = readyVisual ? '파워볼' : (ball.state === 'FLYING' ? '비행중' : '충전중');
+
+        const pCol = Math.floor(player.x / TILE);
+        const pRow = Math.floor(player.y / TILE);
+        const psx = Math.min(9, Math.max(0, Math.floor(pCol / SEC_COLS)));
+        const psy = Math.min(9, Math.max(0, Math.floor(pRow / SEC_ROWS)));
+        domSector.textContent = `📍 칸 (${psx + 1},${psy + 1})`;
+
+        const pct = getConquestPct();
+        if (pct > bestConquestPct) {
+          bestConquestPct = pct;
+          saveRecords();
+        }
+        domConquest.textContent = `🗺️ 정복 ${pct}% (${spawnerKills}/400)`;
+        domMiniPct.textContent = `${clearedSectorCount}/100`;
+      }
+
+      /* =====================================================================
+         8. SECTOR ACTIVATION, ENEMY SPAWNING & BONUS CAKE SYSTEM
+         ===================================================================== */
+      function checkPlayerSectorEntry() {
+        const pCol = Math.floor(player.x / TILE);
+        const pRow = Math.floor(player.y / TILE);
+        const sx = Math.min(WORLD_SECS_X - 1, Math.max(0, Math.floor(pCol / SEC_COLS)));
+        const sy = Math.min(WORLD_SECS_Y - 1, Math.max(0, Math.floor(pRow / SEC_ROWS)));
+        const sec = sectors[sy * WORLD_SECS_X + sx];
+
+        if (!sec.activated) {
+          sec.activated = true;
+          sec.spawnCooldown = 1.0; // Exact 1.0s interval per enemy!
+          showToast(`⚡ 칸 (${sx + 1}, ${sy + 1}) 진입! 적 4마리 1초 간격 출현!`, '#f97316');
+        }
+      }
+
+      function spawnSectorEnemy(sec) {
+        const x = sec.spawnerCol * TILE + TILE / 2;
+        const y = sec.spawnerRow * TILE + TILE / 2;
+        setTile(sec.spawnerCol, sec.spawnerRow, T_TUNNEL);
+
+        enemies.push({
+          type: 'CHASER', // 'CHASER' | 'ALPHA' | 'GUARD' (NO DIGGING!)
+          sectorIdx: sec.idx,
+          fromSpawner: true,
+          letterIdx: -1,
+          col: sec.spawnerCol,
+          row: sec.spawnerRow,
+          nextCol: sec.spawnerCol,
+          nextRow: sec.spawnerRow,
+          x,
+          y,
+          dir: DIR_LIST[sec.spawned % 4]
+        });
+
+        sec.spawned++;
+        sec.aliveFromSector++;
+
+        if (Math.hypot(x - player.x, y - player.y) < VIEW_W * 1.1) {
+          Sound.spawnerPop();
+          addBurst(x, y, '#ef4444', 6);
+        }
+
+        // Right after all 4 enemies in the sector have spawned, Bonus Cake appears!
+        if (sec.spawned >= ENEMIES_PER_SECTOR && !sec.cakeSpawned) {
+          sec.cakeSpawned = true;
+          cakes.push({
+            sectorIdx: sec.idx,
+            col: sec.spawnerCol,
+            row: sec.spawnerRow,
+            x,
+            y
+          });
+          if (Math.hypot(x - player.x, y - player.y) < VIEW_W * 1.3) {
+            Sound.cakeSpawn();
+            showToast(`🍰 칸 (${sec.sx + 1}, ${sec.sy + 1}) 보너스 케익 출현!`, '#f472b6');
+          }
+        }
+      }
+
+      function updateSectorSpawners(dt) {
+        for (let i = 0; i < sectors.length; i++) {
+          const sec = sectors[i];
+          if (!sec.activated || sec.spawned >= ENEMIES_PER_SECTOR) continue;
+          if (freezeTimer > 0) continue;
+
+          sec.spawnCooldown -= dt;
+          if (sec.spawnCooldown <= 0) {
+            spawnSectorEnemy(sec);
+            sec.spawnCooldown += 1.0;
+          }
+        }
+      }
+
+      // Pick existing connected open T_TUNNEL tiles so non-digging Alpha & Guards never get stuck in dirt!
+      function pickTunnelSpawnCells(count) {
+        rebuildTunnelDistanceMap(true);
+        const preferred = [];
+        const fallback = [];
+
+        const pCol = Math.floor(player.x / TILE);
+        const pRow = Math.floor(player.y / TILE);
+        const rMin = Math.max(1, pRow - 14);
+        const rMax = Math.min(WORLD_ROWS - 2, pRow + 14);
+        const cMin = Math.max(1, pCol - 14);
+        const cMax = Math.min(WORLD_COLS - 2, pCol + 14);
+
+        for (let r = rMin; r <= rMax; r++) {
+          for (let c = cMin; c <= cMax; c++) {
+            const d = bfsDist[r * WORLD_COLS + c];
+            if (d >= 5 && d <= 11) {
+              preferred.push({ c, r, d });
+            } else if (d >= 3 && d <= 14) {
+              fallback.push({ c, r, d });
+            }
+          }
+        }
+
+        // Shuffle candidates for varied tunnel entry directions
+        const pool = preferred.length >= count ? preferred : preferred.concat(fallback);
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const tmp = pool[i];
+          pool[i] = pool[j];
+          pool[j] = tmp;
+        }
+
+        const chosen = [];
+        for (let i = 0; i < pool.length && chosen.length < count; i++) {
+          const cand = pool[i];
+          if (chosen.every((prev) => Math.hypot(prev.c - cand.c, prev.r - cand.r) >= 2)) {
+            chosen.push(cand);
+          }
+        }
+        while (chosen.length < count && pool.length > 0) {
+          chosen.push(pool[chosen.length % pool.length]);
+        }
+        return chosen;
+      }
+
+      function triggerBonusCake(cake) {
+        Sound.eatCake();
+        addScore(1000, cake.x, cake.y, '#f472b6');
+        addBurst(cake.x, cake.y, '#f472b6', 14);
+
+        freezeTimer = 9.0;
+        Sound.setAlphaMode(true);
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          if ((e.type === 'ALPHA' || e.type === 'GUARD') && Math.hypot(e.x - player.x, e.y - player.y) > TILE * 24) {
+            enemies.splice(i, 1);
+          }
+        }
+
+        const hasActiveAlpha = enemies.some((e) => e.type === 'ALPHA');
+        if (!hasActiveAlpha) {
+          const letterIdx = nextTargetExtraIdx();
+          const letterChar = EXTRA_WORD[letterIdx];
+          const spawnCells = pickTunnelSpawnCells(4);
+
+          for (let i = 0; i < spawnCells.length; i++) {
+            const role = (i === 0) ? 'ALPHA' : 'GUARD';
+            const sc = spawnCells[i].c;
+            const sr = spawnCells[i].r;
+
+            enemies.push({
+              type: role,
+              sectorIdx: -1,
+              fromSpawner: false,
+              letterIdx: role === 'ALPHA' ? letterIdx : -1,
+              col: sc,
+              row: sr,
+              nextCol: sc,
+              nextRow: sr,
+              x: sc * TILE + TILE / 2,
+              y: sr * TILE + TILE / 2,
+              dir: DIR_LIST[i % 4]
+            });
+            addBurst(sc * TILE + 16, sr * TILE + 16, role === 'ALPHA' ? '#facc15' : '#38bdf8', 8);
+          }
+
+          showToast(`✨ [${letterChar}] 알파벳 몬스터 & 파란 보디가드 터널 출현!`, '#facc15');
+        } else {
+          showToast('🍰 일반 적 정지 시간 연장! (+1,000점)', '#f472b6');
+        }
+      }
+
+      function onEnemyDefeated(idx, pts, color) {
+        const e = enemies[idx];
+        enemies.splice(idx, 1);
+
+        Sound.killEnemy();
+        addScore(pts, e.x, e.y, color || '#38bdf8');
+        addBurst(e.x, e.y, color || '#ef4444', 12);
+
+        if (e.fromSpawner && e.sectorIdx >= 0) {
+          spawnerKills++;
+          const sec = sectors[e.sectorIdx];
+          sec.aliveFromSector = Math.max(0, sec.aliveFromSector - 1);
+          sec.killsFromSector++;
+          if (sec.killsFromSector >= ENEMIES_PER_SECTOR && !sec.cleared) {
+            sec.cleared = true;
+            clearedSectorCount++;
+            addScore(1000, e.x, e.y - 18, '#4ade80');
+            showToast(`✅ 칸 (${sec.sx + 1}, ${sec.sy + 1}) 완전 정복! (+1,000점)`, '#22c55e');
+          }
+
+          if (spawnerKills >= TOTAL_SPAWNER_ENEMIES) {
+            finishVictory('100칸의 모든 스포너 적(400마리)을 전멸시켰습니다!');
+            return;
+          }
+        }
+
+        // Handle Alphabet Monster Victory!
+        if (e.type === 'ALPHA' && e.letterIdx >= 0) {
+          extraCollected[e.letterIdx] = true;
+          const ch = EXTRA_WORD[e.letterIdx];
+          addPopup(e.x, e.y - 22, `LETTER ${ch}!`, '#facc15');
+
+          // Pop all remaining Blue Bodyguards into 500pt bonus bursts
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            if (enemies[j].type === 'GUARD') {
+              const g = enemies[j];
+              addScore(500, g.x, g.y, '#60a5fa');
+              addBurst(g.x, g.y, '#38bdf8', 10);
+              enemies.splice(j, 1);
+            }
+          }
+
+          if (freezeTimer > 0.9) freezeTimer = 0.9;
+          Sound.setAlphaMode(false);
+
+          // E-X-T-R-A Completion -> +10,000 Bonus + Wipe all currently active enemies + Reset Slots!
+          if (extraCollected.every(Boolean)) {
+            extraCollected = [false, false, false, false, false];
+            Sound.extraFanfare();
+            addScore(10000, player.x, player.y - 24, '#facc15');
+
+            for (let k = enemies.length - 1; k >= 0; k--) {
+              onEnemyDefeated(k, 500, '#fde047');
+              if (gameState !== 'PLAYING') return;
+            }
+            showToast('🎉 E-X-T-R-A 완성! +10,000점 & 출현 적 전원 소탕!', '#facc15');
+          } else {
+            showToast(`🔤 알파벳 [${ch}] 획득!`, '#facc15');
+          }
+        }
+      }
+
+      /* =====================================================================
+         9. PLAYER MOVEMENT (+10% Speed, Digging, Apple Pushing)
+         ===================================================================== */
+      const heldKeys = new Set();
+      let touchDir = null;
+
+      function getDesiredDir() {
+        if (touchDir) return DIRS[touchDir];
+        if (heldKeys.has('ArrowUp')    || heldKeys.has('KeyW')) return DIRS.UP;
+        if (heldKeys.has('ArrowDown')  || heldKeys.has('KeyS')) return DIRS.DOWN;
+        if (heldKeys.has('ArrowLeft')  || heldKeys.has('KeyA')) return DIRS.LEFT;
+        if (heldKeys.has('ArrowRight') || heldKeys.has('KeyD')) return DIRS.RIGHT;
+        return null;
+      }
+
+      function canPlayerEnterTile(c, r, dir) {
+        if (c < 0 || c >= WORLD_COLS || r < 0 || r >= WORLD_ROWS) return false;
+        const ap = hasAppleAt(c, r);
+        if (ap) {
+          if (ap.state !== 'IDLE') return false;
+          if (dir.dx !== 0) {
+            const behindC = c + dir.dx;
+            if (behindC >= 0 && behindC < WORLD_COLS &&
+                getTile(behindC, r) === T_TUNNEL &&
+                !hasAppleAt(behindC, r)) {
+              return true;
+            }
+          }
+          return false;
+        }
+        return true;
+      }
+
+      function harvestTileUnderPlayer(c, r) {
+        const t = getTile(c, r);
+        if (t === T_DIRT) {
+          setTile(c, r, T_TUNNEL);
+          lastBfsCol = -1; // Force tunnel flow-field refresh when new tunnel is dug
+          addScore(10);
+          Sound.dig();
+        } else if (t === T_CHERRY) {
+          setTile(c, r, T_TUNNEL);
+          lastBfsCol = -1;
+          harvestedCherries++;
+          player.cherryChain = (player.cherryGrace > 0) ? (player.cherryChain + 1) : 1;
+          player.cherryGrace = 0.65;
+          Sound.cherry(player.cherryChain);
+
+          if (player.cherryChain >= 8) {
+            player.cherryChain = 0;
+            addScore(550, c * TILE + 16, r * TILE + 16, '#4ade80');
+            showToast('🍒 체리 8연속 수확 보너스! +500점!', '#4ade80');
+          } else {
+            addScore(50);
+          }
+
+          if (harvestedCherries >= totalCherries && totalCherries > 0) {
+            finishVictory('월드 전체의 모든 체리를 완벽히 수확했습니다!');
+          }
+        }
+      }
+
+      function updatePlayer(dt) {
+        if (player.cherryGrace > 0) {
+          player.cherryGrace -= dt;
+          if (player.cherryGrace <= 0) player.cherryChain = 0;
+        }
+
+        const want = getDesiredDir();
+        if (!want) {
+          player.moving = false;
+          return;
+        }
+
+        player.moving = true;
+        let remDist = PLAYER_SPEED * dt;
+
+        let safety = 0;
+        while (remDist > 0.001 && safety++ < 4) {
+          const curCol = Math.floor(player.x / TILE);
+          const curRow = Math.floor(player.y / TILE);
+          const centerX = curCol * TILE + TILE / 2;
+          const centerY = curRow * TILE + TILE / 2;
+
+          if (want.code === player.dir.opp) {
+            player.dir = want;
+          } else if (want.code !== player.dir.code) {
+            const perpDist = (player.dir.dx !== 0) ? Math.abs(player.x - centerX) : Math.abs(player.y - centerY);
+            if (perpDist <= 11 && canPlayerEnterTile(curCol + want.dx, curRow + want.dy, want)) {
+              player.x = centerX;
+              player.y = centerY;
+              player.dir = want;
+            }
+          }
+
+          const d = player.dir;
+          if (d.dx !== 0) player.y = centerY;
+          else player.x = centerX;
+
+          const aheadCol = curCol + d.dx;
+          const aheadRow = curRow + d.dy;
+
+          const distToCenter = (d.dx !== 0)
+            ? (centerX - player.x) * d.dx
+            : (centerY - player.y) * d.dy;
+
+          if (distToCenter > 0) {
+            const step = Math.min(remDist, distToCenter);
+            player.x += d.dx * step;
+            player.y += d.dy * step;
+            remDist -= step;
+          } else {
+            if (!canPlayerEnterTile(aheadCol, aheadRow, d)) {
+              if (want.code !== d.code && canPlayerEnterTile(curCol + want.dx, curRow + want.dy, want)) {
+                player.x = centerX;
+                player.y = centerY;
+                player.dir = want;
+                continue;
+              }
+              player.x = centerX;
+              player.y = centerY;
+              remDist = 0;
+              break;
+            }
+
+            const blockingApple = hasAppleAt(aheadCol, aheadRow);
+            if (blockingApple && blockingApple.state === 'IDLE' && d.dx !== 0) {
+              const destCol = aheadCol + d.dx;
+              blockingApple.col = destCol;
+              blockingApple.state = 'PUSHING';
+              blockingApple.targetX = destCol * TILE + TILE / 2;
+              lastBfsCol = -1; // Refresh tunnel flow-field when apple plugs/unplugs a tunnel
+            }
+
+            const nextCenterX = aheadCol * TILE + TILE / 2;
+            const nextCenterY = aheadRow * TILE + TILE / 2;
+            const distToNext = (d.dx !== 0)
+              ? Math.abs(nextCenterX - player.x)
+              : Math.abs(nextCenterY - player.y);
+
+            const step = Math.min(remDist, Math.max(0.5, distToNext));
+            player.x += d.dx * step;
+            player.y += d.dy * step;
+            remDist -= step;
+          }
+
+          const newCol = Math.floor(player.x / TILE);
+          const newRow = Math.floor(player.y / TILE);
+          harvestTileUnderPlayer(newCol, newRow);
+        }
+
+        player.x = Math.max(TILE / 2, Math.min(WORLD_W - TILE / 2, player.x));
+        player.y = Math.max(TILE / 2, Math.min(WORLD_H - TILE / 2, player.y));
+
+        checkPlayerSectorEntry();
+
+        for (let i = cakes.length - 1; i >= 0; i--) {
+          const ck = cakes[i];
+          if (Math.hypot(player.x - ck.x, player.y - ck.y) < TILE * 0.65) {
+            cakes.splice(i, 1);
+            triggerBonusCake(ck);
+          }
+        }
+      }
+
+      /* =====================================================================
+         10. POWERBALL PHYSICS (Ricochet + Instant Catch / Recharge)
+         ===================================================================== */
+      function throwPowerball() {
+        if (gameState !== 'PLAYING' || ball.state !== 'READY') return;
+        ball.state = 'FLYING';
+        ball.x = player.x;
+        ball.y = player.y;
+        ball.dir = player.dir;
+        ball.age = 0;
+        Sound.throwBall();
+      }
+
+      function isBallOpen(c, r) {
+        if (c < 0 || c >= WORLD_COLS || r < 0 || r >= WORLD_ROWS) return false;
+        if (getTile(c, r) !== T_TUNNEL) return false;
+        if (hasAppleAt(c, r)) return false;
+        return true;
+      }
+
+      function updatePowerball(dt) {
+        if (ball.state === 'READY') return;
+
+        if (ball.state === 'RECHARGING') {
+          const rate = player.moving ? 0.58 : 0.36;
+          ball.recharge += rate * dt;
+          if (ball.recharge >= 1) {
+            ball.recharge = 0;
+            ball.state = 'READY';
+            Sound.catchBall();
+            addBurst(player.x, player.y, '#38bdf8', 6);
+          }
+          return;
+        }
+
+        ball.age += dt;
+        let rem = BALL_SPEED * dt;
+
+        while (rem > 0.001) {
+          const c = Math.floor(ball.x / TILE);
+          const r = Math.floor(ball.y / TILE);
+          const cx = c * TILE + TILE / 2;
+          const cy = r * TILE + TILE / 2;
+          const d = ball.dir;
+
+          if (d.dx !== 0) ball.y = cy;
+          else ball.x = cx;
+
+          const distCenter = (d.dx !== 0) ? (cx - ball.x) * d.dx : (cy - ball.y) * d.dy;
+
+          if (distCenter > 0) {
+            const step = Math.min(rem, distCenter);
+            ball.x += d.dx * step;
+            ball.y += d.dy * step;
+            rem -= step;
+          } else {
+            const fc = c + d.dx;
+            const fr = r + d.dy;
+            if (!isBallOpen(fc, fr)) {
+              ball.x = cx;
+              ball.y = cy;
+              const perps = DIR_LIST.filter((cand) =>
+                cand.code !== d.code && cand.code !== d.opp && isBallOpen(c + cand.dx, r + cand.dy)
+              );
+              if (perps.length > 0) {
+                ball.dir = perps[Math.floor(Math.random() * perps.length)];
+              } else {
+                ball.dir = DIRS[d.opp];
+              }
+              if (Math.hypot(ball.x - player.x, ball.y - player.y) < VIEW_W) {
+                Sound.bounce();
+              }
+              continue;
+            }
+
+            const ncx = fc * TILE + TILE / 2;
+            const ncy = fr * TILE + TILE / 2;
+            const distNext = (d.dx !== 0) ? Math.abs(ncx - ball.x) : Math.abs(ncy - ball.y);
+            const step = Math.min(rem, Math.max(0.5, distNext));
+            ball.x += d.dx * step;
+            ball.y += d.dy * step;
+            rem -= step;
+          }
+
+          for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            if (Math.hypot(ball.x - e.x, ball.y - e.y) < TILE * 0.62) {
+              const pts = e.type === 'ALPHA' ? 1000 : 500;
+              onEnemyDefeated(i, pts, '#38bdf8');
+              ball.state = 'RECHARGING';
+              ball.recharge = 0;
+              return;
+            }
+          }
+
+          if (ball.age > 0.16 && Math.hypot(ball.x - player.x, ball.y - player.y) < TILE * 0.62) {
+            ball.state = 'READY';
+            Sound.catchBall();
+            return;
+          }
+        }
+
+        if (ball.age > 5.0 || Math.hypot(ball.x - player.x, ball.y - player.y) > TILE * 16) {
+          ball.state = 'RECHARGING';
+          ball.recharge = 0.25;
+        }
+      }
+
+      /* =====================================================================
+         11. APPLE GRAVITY, PLAYER SUPPORT HOLD, PUSHING, CRUSHING & SPLITTING
+         ===================================================================== */
+      function isPlayerUnderApple(a) {
+        // True while Mr. Do is occupying the support space directly beneath apple `a`
+        return (
+          Math.abs(player.x - a.x) < TILE * 0.78 &&
+          player.y > a.y &&
+          player.y <= a.y + TILE * 1.55
+        );
+      }
+
+      function updateApples(dt) {
+        const pCol = Math.floor(player.x / TILE);
+        const pRow = Math.floor(player.y / TILE);
+
+        for (let i = apples.length - 1; i >= 0; i--) {
+          const a = apples[i];
+
+          if (a.state === 'IDLE' && !a.heldByPlayer &&
+              (Math.abs(a.col - pCol) > 28 || Math.abs(a.row - pRow) > 32)) {
+            continue;
+          }
+
+          const spaceBelowOpen = (
+            a.row + 1 < WORLD_ROWS &&
+            getTile(a.col, a.row + 1) === T_TUNNEL &&
+            !hasAppleAt(a.col, a.row + 1, a)
+          );
+
+          if (a.state === 'PUSHING') {
+            a.heldByPlayer = false;
+            const diff = a.targetX - a.x;
+            const step = PLAYER_SPEED * dt;
+            if (Math.abs(diff) <= step) {
+              a.x = a.targetX;
+              a.state = 'IDLE';
+              lastBfsCol = -1;
+            } else {
+              a.x += Math.sign(diff) * step;
+            }
+          } else if (a.state === 'IDLE') {
+            if (spaceBelowOpen) {
+              if (isPlayerUnderApple(a)) {
+                // Player is underneath the apple -> hold up until player moves away!
+                a.heldByPlayer = true;
+              } else {
+                const releasedFromPlayer = a.heldByPlayer;
+                a.heldByPlayer = false;
+                a.state = 'WOBBLE';
+                a.timer = releasedFromPlayer ? 0.20 : 0.42;
+              }
+            } else {
+              a.heldByPlayer = false;
+            }
+          } else if (a.state === 'WOBBLE') {
+            if (!spaceBelowOpen) {
+              a.state = 'IDLE';
+              a.heldByPlayer = false;
+              a.timer = 0;
+            } else if (isPlayerUnderApple(a)) {
+              // If player steps underneath while wobbling, hold the apple until player leaves
+              a.heldByPlayer = true;
+              a.timer = Math.max(a.timer, 0.20);
+            } else {
+              a.heldByPlayer = false;
+              a.timer -= dt;
+              if (a.timer <= 0) {
+                a.state = 'FALLING';
+                a.fallStartRow = a.row;
+                a.crushedCount = 0;
+                lastBfsCol = -1;
+              }
+            }
+          } else if (a.state === 'FALLING') {
+            a.y += APPLE_FALL_SPEED * dt;
+            a.row = Math.floor(a.y / TILE);
+
+            // Crush any enemies in path!
+            for (let j = enemies.length - 1; j >= 0; j--) {
+              const e = enemies[j];
+              if (Math.abs(e.x - a.x) < TILE * 0.68 && Math.abs(e.y - a.y) < TILE * 0.68) {
+                a.crushedCount++;
+                const multPts = 1000 * Math.pow(2, Math.min(3, a.crushedCount - 1));
+                onEnemyDefeated(j, multPts, '#facc15');
+                if (gameState !== 'PLAYING') return;
+              }
+            }
+
+            // Crush player if underneath -> triggers complete fresh restart!
+            if (Math.abs(player.x - a.x) < TILE * 0.54 &&
+                Math.abs(player.y - a.y) < TILE * 0.54 &&
+                player.y >= a.y - 6) {
+              triggerPlayerDeath();
+              return;
+            }
+
+            const belowRow = Math.floor((a.y + TILE / 2) / TILE);
+            if (belowRow >= WORLD_ROWS ||
+                getTile(a.col, belowRow) !== T_TUNNEL ||
+                hasAppleAt(a.col, belowRow, a)) {
+              const landRow = Math.max(0, belowRow - 1);
+              a.row = landRow;
+              a.y = landRow * TILE + TILE / 2;
+              lastBfsCol = -1;
+              if (landRow - a.fallStartRow >= 2 || a.crushedCount > 0) {
+                a.state = 'SPLITTING';
+                a.timer = 0.42;
+                if (Math.hypot(a.x - player.x, a.y - player.y) < VIEW_W * 1.1) {
+                  Sound.appleCrack();
+                }
+              } else {
+                a.state = 'IDLE';
+              }
+            }
+          } else if (a.state === 'SPLITTING') {
+            a.timer -= dt;
+            if (a.timer <= 0) {
+              apples.splice(i, 1);
+              lastBfsCol = -1;
+            }
+          }
+        }
+      }
+
+      /* =====================================================================
+         12. ENEMY AI (STRICT TUNNEL-ONLY MOVEMENT, ZERO DIGGING)
+         ===================================================================== */
+      function chooseEnemyStep(e) {
+        const pCol = Math.floor(player.x / TILE);
+        const pRow = Math.floor(player.y / TILE);
+
+        // STRICT RULE: Enemies can ONLY move into existing T_TUNNEL tiles without apples!
+        const validDirs = [];
+        for (let i = 0; i < DIR_LIST.length; i++) {
+          const d = DIR_LIST[i];
+          const nc = e.col + d.dx;
+          const nr = e.row + d.dy;
+          if (nc < 0 || nc >= WORLD_COLS || nr < 0 || nr >= WORLD_ROWS) continue;
+          if (getTile(nc, nr) !== T_TUNNEL) continue;
+          if (hasAppleAt(nc, nr)) continue;
+          validDirs.push(d);
+        }
+
+        // If completely boxed in by apples/dirt, wait in place — NEVER dig dirt!
+        if (validDirs.length === 0) {
+          e.nextCol = e.col;
+          e.nextRow = e.row;
+          return;
+        }
+
+        // Prefer non-reverse directions unless at a tunnel dead-end
+        let choices = validDirs.filter((d) => d.code !== e.dir.opp);
+        if (choices.length === 0) {
+          choices = validDirs;
+        }
+
+        let bestDir = choices[0];
+        let bestScoreMetric = Infinity;
+
+        for (let i = 0; i < choices.length; i++) {
+          const d = choices[i];
+          const nc = e.col + d.dx;
+          const nr = e.row + d.dy;
+          const tunnelSteps = bfsDist[nr * WORLD_COLS + nc];
+
+          let metric;
+          if (tunnelSteps >= 0) {
+            // Connected via tunnel! Follow shortest tunnel path (Alpha kites slightly when very close)
+            if (e.type === 'ALPHA' && tunnelSteps < 4) {
+              metric = (10 - tunnelSteps) + Math.random() * 0.45;
+            } else {
+              metric = tunnelSteps + Math.random() * 0.45;
+            }
+          } else {
+            // Sector tunnel not yet linked to player's tunnel -> patrol smoothly along tunnel
+            metric = 1000 + Math.hypot(nc - pCol, nr - pRow) * 0.25 + Math.random() * 1.5;
+          }
+
+          if (metric < bestScoreMetric) {
+            bestScoreMetric = metric;
+            bestDir = d;
+          }
+        }
+
+        e.dir = bestDir;
+        e.nextCol = e.col + bestDir.dx;
+        e.nextRow = e.row + bestDir.dy;
+      }
+
+      function updateEnemies(dt) {
+        if (bfsTimer > 0) bfsTimer -= dt;
+        rebuildTunnelDistanceMap(false);
+
+        if (freezeTimer > 0) {
+          freezeTimer = Math.max(0, freezeTimer - dt);
+          if (freezeTimer <= 0) {
+            Sound.setAlphaMode(false);
+          }
+        }
+
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          const e = enemies[i];
+          const isSpecial = (e.type === 'ALPHA' || e.type === 'GUARD');
+
+          // Normal enemies pause completely while Bonus Cake freezeTimer > 0
+          if (!isSpecial && freezeTimer > 0) {
+            continue;
+          }
+
+          // If player pushed an apple onto the cell this enemy was walking into, turn back cleanly!
+          if ((e.nextCol !== e.col || e.nextRow !== e.row) &&
+              (getTile(e.nextCol, e.nextRow) !== T_TUNNEL || hasAppleAt(e.nextCol, e.nextRow))) {
+            e.nextCol = e.col;
+            e.nextRow = e.row;
+            e.dir = DIRS[e.dir.opp];
+          }
+
+          let rem = ENEMY_SPEED * dt;
+          let guard = 0;
+          while (rem > 0.0001 && guard++ < 4) {
+            const tx = e.nextCol * TILE + TILE / 2;
+            const ty = e.nextRow * TILE + TILE / 2;
+            const dx = tx - e.x;
+            const dy = ty - e.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist <= 0.001) {
+              e.col = e.nextCol;
+              e.row = e.nextRow;
+              e.x = tx;
+              e.y = ty;
+              chooseEnemyStep(e);
+              if (e.nextCol === e.col && e.nextRow === e.row) break;
+            } else if (rem >= dist) {
+              e.x = tx;
+              e.y = ty;
+              e.col = e.nextCol;
+              e.row = e.nextRow;
+              rem -= dist;
+              chooseEnemyStep(e);
+              if (e.nextCol === e.col && e.nextRow === e.row) break;
+            } else {
+              e.x += (dx / dist) * rem;
+              e.y += (dy / dist) * rem;
+              rem = 0;
+            }
+          }
+
+          // Touch collision with Mr. Do -> Death triggers complete fresh start!
+          if (Math.hypot(e.x - player.x, e.y - player.y) < TILE * 0.58) {
+            triggerPlayerDeath();
+            return;
+          }
+        }
+      }
+
+      /* =====================================================================
+         13. DEATH -> COMPLETE FRESH START AT TOP-LEFT (1,1) & VICTORY
+         ===================================================================== */
+      function triggerPlayerDeath() {
+        if (gameState !== 'PLAYING') return;
+
+        // Save best records before resetting everything
+        const pct = getConquestPct();
+        if (score > bestScore) bestScore = score;
+        if (pct > bestConquestPct) bestConquestPct = pct;
+        saveRecords();
+
+        lastRunSummary = {
+          score,
+          pct
+        };
+
+        gameState = 'DYING';
+        deathTimer = 1.05;
+        freezeTimer = 0;
+        Sound.setAlphaMode(false);
+        Sound.stopBgm();
+        Sound.die();
+        addBurst(player.x, player.y, '#ef4444', 18);
+      }
+
+      // Resets the entire 10x10 world, score, items, and camera back to the very beginning!
+      function resetToFreshStart(waitForFirstInput = false) {
+        buildOpenWorld();
+
+        score = 0;
+        extraCollected = [false, false, false, false, false];
+        freezeTimer = 0;
+        Sound.setAlphaMode(false);
+
+        player.x = START_COL * TILE + TILE / 2;
+        player.y = START_ROW * TILE + TILE / 2;
+        player.dir = DIRS.RIGHT;
+        player.moving = false;
+        player.cherryChain = 0;
+        player.cherryGrace = 0;
+
+        ball.state = 'READY';
+        ball.recharge = 0;
+
+        updateCamera(true);
+        rebuildTunnelDistanceMap(true);
+
+        document.getElementById('startModal').classList.remove('open');
+        document.getElementById('endModal').classList.remove('open');
+
+        if (waitForFirstInput) {
+          // Clear held inputs so player sees they are back at top-left (1,1) start; next input launches immediately!
+          heldKeys.clear();
+          setTouchDpad(null);
+          gameState = 'READY';
+          Sound.stopBgm();
+          const prevTxt = lastRunSummary ? ` (직전 ${lastRunSummary.score.toLocaleString()}점 · ${lastRunSummary.pct}%)` : '';
+          showToast(`🔄 처음부터 새로운 시작! 이동하면 출발합니다${prevTxt}`, '#38bdf8');
+        } else {
+          lastRunSummary = null;
+          gameState = 'PLAYING';
+          checkPlayerSectorEntry();
+          Sound.startBgm();
+        }
+
+        updateHUD();
+      }
+
+      function activateFromReadyState() {
+        if (gameState !== 'READY') return;
+        lastRunSummary = null;
+        gameState = 'PLAYING';
+        checkPlayerSectorEntry();
+        Sound.startBgm();
+        updateHUD();
+      }
+
+      function finishVictory(reason) {
+        gameState = 'ENDED';
+        Sound.setAlphaMode(false);
+        Sound.stopBgm();
+        Sound.extraFanfare();
+
+        const pct = getConquestPct();
+        let isNew = false;
+        if (score > bestScore) { bestScore = score; isNew = true; }
+        if (pct > bestConquestPct) { bestConquestPct = pct; isNew = true; }
+        saveRecords();
+        updateHUD();
+
+        document.getElementById('newRecordTag').classList.toggle('show', isNew);
+        document.getElementById('endReason').textContent = reason;
+        document.getElementById('endScore').textContent = score.toLocaleString();
+        document.getElementById('endConquest').textContent = `${pct}% (최고 ${bestConquestPct}%)`;
+        document.getElementById('endKills').textContent = `${spawnerKills} / 400`;
+        document.getElementById('endSectors').textContent = `${clearedSectorCount}칸 / 🍒${harvestedCherries}`;
+
+        document.getElementById('endModal').classList.add('open');
+      }
+
+      /* =====================================================================
+         14. CAMERA, VIEWPORT CULLING RENDERER & 10x10 MINIMAP
+         ===================================================================== */
+      function updateCamera(instant = false) {
+        const targetX = Math.max(0, Math.min(WORLD_W - VIEW_W, player.x - VIEW_W / 2));
+        const targetY = Math.max(0, Math.min(WORLD_H - VIEW_H, player.y - VIEW_H / 2));
+        if (instant) {
+          cam.x = targetX;
+          cam.y = targetY;
+        } else {
+          cam.x += (targetX - cam.x) * 0.22;
+          cam.y += (targetY - cam.y) * 0.22;
+        }
+      }
+
+      function renderWorld() {
+        ctx.fillStyle = '#05070d';
+        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+        const c0 = Math.max(0, Math.floor(cam.x / TILE));
+        const c1 = Math.min(WORLD_COLS - 1, Math.ceil((cam.x + VIEW_W) / TILE));
+        const r0 = Math.max(0, Math.floor(cam.y / TILE));
+        const r1 = Math.min(WORLD_ROWS - 1, Math.ceil((cam.y + VIEW_H) / TILE));
+
+        const ox = Math.round(cam.x);
+        const oy = Math.round(cam.y);
+
+        // 1) Draw Dirt & Cherries (Viewport Culled)
+        for (let r = r0; r <= r1; r++) {
+          const sy = Math.floor(r / SEC_ROWS);
+          const drawY = r * TILE - oy;
+          for (let c = c0; c <= c1; c++) {
+            const t = grid[r * WORLD_COLS + c];
+            if (t === T_TUNNEL) continue;
+
+            const sx = Math.floor(c / SEC_COLS);
+            const biome = sectors[sy * WORLD_SECS_X + sx].biome;
+            const drawX = c * TILE - ox;
+
+            ctx.drawImage(SPRITES.dirtTiles[biome], drawX, drawY);
+            if (t === T_CHERRY) {
+              ctx.drawImage(SPRITES.cherry, drawX, drawY);
+            }
+          }
+        }
+
+        // Dashed sector grid lines
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        for (let sx = 1; sx < WORLD_SECS_X; sx++) {
+          const lx = sx * SEC_COLS * TILE - ox;
+          if (lx >= 0 && lx <= VIEW_W) {
+            ctx.beginPath();
+            ctx.moveTo(lx, 0);
+            ctx.lineTo(lx, VIEW_H);
+            ctx.stroke();
+          }
+        }
+        for (let sy = 1; sy < WORLD_SECS_Y; sy++) {
+          const ly = sy * SEC_ROWS * TILE - oy;
+          if (ly >= 0 && ly <= VIEW_H) {
+            ctx.beginPath();
+            ctx.moveTo(0, ly);
+            ctx.lineTo(VIEW_W, ly);
+            ctx.stroke();
+          }
+        }
+        ctx.setLineDash([]);
+
+        // 2) Draw Sector Spawner Nests in View
+        const sX0 = Math.floor(c0 / SEC_COLS);
+        const sX1 = Math.floor(c1 / SEC_COLS);
+        const sY0 = Math.floor(r0 / SEC_ROWS);
+        const sY1 = Math.floor(r1 / SEC_ROWS);
+
+        for (let sy = sY0; sy <= sY1; sy++) {
+          for (let sx = sX0; sx <= sX1; sx++) {
+            const sec = sectors[sy * WORLD_SECS_X + sx];
+            const nx = sec.spawnerCol * TILE + TILE / 2 - ox;
+            const ny = sec.spawnerRow * TILE + TILE / 2 - oy;
+
+            ctx.save();
+            ctx.strokeStyle = sec.cleared
+              ? 'rgba(34, 197, 94, 0.45)'
+              : sec.activated
+                ? '#f97316'
+                : 'rgba(148, 163, 184, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(nx - 13, ny - 13, 26, 26);
+
+            if (sec.activated && sec.spawned < ENEMIES_PER_SECTOR) {
+              const pulse = 0.65 + 0.35 * Math.sin(animClock * 10);
+              ctx.fillStyle = `rgba(239, 68, 68, ${pulse.toFixed(2)})`;
+              ctx.fillRect(nx - 10, ny - 10, 20, 20);
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 11px monospace';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(`${ENEMIES_PER_SECTOR - sec.spawned}`, nx, ny + 1);
+            }
+            ctx.restore();
+          }
+        }
+
+        // 3) Draw Bonus Cakes
+        for (let i = 0; i < cakes.length; i++) {
+          const ck = cakes[i];
+          const dx = ck.x - ox;
+          const dy = ck.y - oy;
+          if (dx < -TILE || dx > VIEW_W + TILE || dy < -TILE || dy > VIEW_H + TILE) continue;
+          const bob = Math.sin(animClock * 6) * 2;
+          ctx.drawImage(SPRITES.cake, Math.round(dx - 16), Math.round(dy - 16 + bob));
+        }
+
+        // 4) Draw Apples
+        for (let i = 0; i < apples.length; i++) {
+          const a = apples[i];
+          const dx = a.x - ox;
+          const dy = a.y - oy;
+          if (dx < -TILE || dx > VIEW_W + TILE || dy < -TILE || dy > VIEW_H + TILE) continue;
+
+          if (a.state === 'SPLITTING') {
+            const sep = (1 - a.timer / 0.42) * 12;
+            ctx.globalAlpha = Math.max(0, a.timer / 0.42);
+            ctx.drawImage(SPRITES.appleLeft,  Math.round(dx - 16 - sep), Math.round(dy - 16));
+            ctx.drawImage(SPRITES.appleRight, Math.round(dx - 16 + sep), Math.round(dy - 16));
+            ctx.globalAlpha = 1;
+          } else {
+            const shake = a.state === 'WOBBLE'
+              ? Math.sin(animClock * 42) * 3
+              : a.heldByPlayer
+                ? Math.sin(animClock * 20) * 1.2
+                : 0;
+            ctx.drawImage(SPRITES.apple, Math.round(dx - 16 + shake), Math.round(dy - 16));
+          }
+        }
+
+        // 5) Draw Enemies
+        const frame = Math.floor(animClock * 7) % 2;
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          const dx = e.x - ox;
+          const dy = e.y - oy;
+          if (dx < -TILE || dx > VIEW_W + TILE || dy < -TILE || dy > VIEW_H + TILE) continue;
+
+          let sprSet = SPRITES.chaser;
+          const isSpecial = (e.type === 'ALPHA' || e.type === 'GUARD');
+          if (!isSpecial && freezeTimer > 0) {
+            if (freezeTimer < 2.0 && Math.floor(animClock * 10) % 2 === 0) {
+              sprSet = SPRITES.chaser;
+            } else {
+              sprSet = SPRITES.frozen;
+            }
+          } else if (e.type === 'GUARD') {
+            sprSet = SPRITES.guard;
+          } else if (e.type === 'ALPHA') {
+            sprSet = SPRITES.alphaBase;
+          }
+
+          ctx.drawImage(sprSet[frame], Math.round(dx - 16), Math.round(dy - 16));
+
+          if (e.type === 'ALPHA' && e.letterIdx >= 0) {
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.arc(dx, dy - 16, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#090d16';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.fillStyle = '#090d16';
+            ctx.font = '900 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(EXTRA_WORD[e.letterIdx], dx, dy - 15.5);
+          }
+        }
+
+        // 6) Draw Powerball
+        if (ball.state === 'FLYING') {
+          const bx = ball.x - ox;
+          const by = ball.y - oy;
+          const bounceWiggle = Math.sin(ball.age * 28) * 4;
+          const wx = ball.dir.dy !== 0 ? bounceWiggle : 0;
+          const wy = ball.dir.dx !== 0 ? bounceWiggle : 0;
+
+          ctx.save();
+          ctx.fillStyle = '#38bdf8';
+          ctx.shadowColor = '#7dd3fc';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(bx + wx, by + wy, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(bx + wx - 2, by + wy - 2, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 7) Draw Mr. Do!
+        const px = player.x - ox;
+        const py = player.y - oy;
+        if (gameState === 'DYING') {
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate((1.05 - deathTimer) * 16);
+          ctx.drawImage(SPRITES.mrDo[0], -16, -16);
+          ctx.restore();
+        } else {
+          const pFrame = player.moving ? (Math.floor(animClock * 9) % 2) : 0;
+          ctx.save();
+          ctx.translate(Math.round(px), Math.round(py));
+          if (player.dir.code === 'LEFT') ctx.scale(-1, 1);
+          ctx.drawImage(SPRITES.mrDo[pFrame], -16, -16);
+          ctx.restore();
+
+          if (ball.state === 'READY') {
+            const orbX = px + player.dir.dx * 11;
+            const orbY = py + player.dir.dy * 11;
+            ctx.fillStyle = '#7dd3fc';
+            ctx.beginPath();
+            ctx.arc(orbX, orbY, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // 8) Classic Arcade "PLAYER READY!" Banner on Fresh Restart after Death
+        if (gameState === 'READY') {
+          ctx.save();
+          ctx.fillStyle = 'rgba(9, 13, 22, 0.84)';
+          ctx.strokeStyle = '#facc15';
+          ctx.lineWidth = 2;
+          const bw = 296;
+          const bh = lastRunSummary ? 66 : 48;
+          const bx = (VIEW_W - bw) / 2;
+          const by = VIEW_H / 2 - bh / 2 - 22;
+          ctx.fillRect(bx, by, bw, bh);
+          ctx.strokeRect(bx, by, bw, bh);
+
+          ctx.fillStyle = '#facc15';
+          ctx.font = '900 14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('PLAYER 1 READY! (칸 1,1 새 출발)', VIEW_W / 2, by + 20);
+
+          ctx.fillStyle = '#e2e8f0';
+          ctx.font = '800 11px sans-serif';
+          if (lastRunSummary) {
+            ctx.fillText(
+              `직전 기록: ${lastRunSummary.score.toLocaleString()}점 · 정복 ${lastRunSummary.pct}%  |  방향키로 출발`,
+              VIEW_W / 2,
+              by + 44
+            );
+          } else {
+            ctx.fillText('방향키 또는 패드를 조작하면 즉시 시작합니다', VIEW_W / 2, by + 36);
+          }
+          ctx.restore();
+        }
+
+        // 9) Particles & Floating Score Popups
+        for (let i = 0; i < particles.length; i++) {
+          const pt = particles[i];
+          ctx.fillStyle = pt.color;
+          ctx.fillRect(pt.x - ox - 2, pt.y - oy - 2, 4, 4);
+        }
+
+        ctx.font = '900 12px sans-serif';
+        ctx.textAlign = 'center';
+        for (let i = 0; i < popups.length; i++) {
+          const pp = popups[i];
+          ctx.fillStyle = '#090d16';
+          ctx.fillText(pp.text, pp.x - ox + 1, pp.y - oy + 1);
+          ctx.fillStyle = pp.color;
+          ctx.fillText(pp.text, pp.x - ox, pp.y - oy);
+        }
+      }
+
+      function renderMinimap() {
+        miniCtx.fillStyle = '#090d16';
+        miniCtx.fillRect(0, 0, 80, 80);
+
+        const cell = 8;
+        const cakeSet = new Set(cakes.map((ck) => ck.sectorIdx));
+
+        for (let sy = 0; sy < WORLD_SECS_Y; sy++) {
+          for (let sx = 0; sx < WORLD_SECS_X; sx++) {
+            const sec = sectors[sy * WORLD_SECS_X + sx];
+            const mx = sx * cell;
+            const my = sy * cell;
+
+            if (sec.cleared) {
+              miniCtx.fillStyle = '#16a34a';
+            } else if (sec.activated) {
+              miniCtx.fillStyle = sec.aliveFromSector > 0 || sec.spawned < 4 ? '#dc2626' : '#475569';
+            } else {
+              miniCtx.fillStyle = '#1e293b';
+            }
+            miniCtx.fillRect(mx + 1, my + 1, cell - 2, cell - 2);
+
+            if (cakeSet.has(sec.idx)) {
+              miniCtx.fillStyle = '#facc15';
+              miniCtx.fillRect(mx + 2, my + 2, 4, 4);
+            }
+          }
+        }
+
+        miniCtx.fillStyle = '#fca5a5';
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          const ex = Math.floor((e.x / WORLD_W) * 80);
+          const ey = Math.floor((e.y / WORLD_H) * 80);
+          miniCtx.fillRect(ex, ey, 2, 2);
+        }
+
+        const psx = Math.min(9, Math.max(0, Math.floor(player.x / (SEC_COLS * TILE))));
+        const psy = Math.min(9, Math.max(0, Math.floor(player.y / (SEC_ROWS * TILE))));
+        miniCtx.strokeStyle = '#38bdf8';
+        miniCtx.lineWidth = 1.5;
+        miniCtx.strokeRect(psx * cell + 0.5, psy * cell + 0.5, cell - 1, cell - 1);
+
+        if (Math.floor(animClock * 6) % 2 === 0) {
+          miniCtx.fillStyle = '#ffffff';
+          const px = Math.floor((player.x / WORLD_W) * 80);
+          const py = Math.floor((player.y / WORLD_H) * 80);
+          miniCtx.fillRect(px - 1, py - 1, 3, 3);
+        }
+      }
+
+      /* =====================================================================
+         15. MAIN LOOP
+         ===================================================================== */
+      function updateEffects(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const pt = particles[i];
+          pt.x += pt.vx * dt;
+          pt.y += pt.vy * dt;
+          pt.life -= dt;
+          if (pt.life <= 0) particles.splice(i, 1);
+        }
+        for (let i = popups.length - 1; i >= 0; i--) {
+          const pp = popups[i];
+          pp.y -= 24 * dt;
+          pp.life -= dt;
+          if (pp.life <= 0) popups.splice(i, 1);
+        }
+      }
+
+      let lastTs = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, Math.max(0, (now - lastTs) / 1000));
+        lastTs = now;
+        animClock += dt;
+
+        if (gameState === 'PLAYING') {
+          updatePlayer(dt);
+          if (gameState === 'PLAYING') updatePowerball(dt);
+          if (gameState === 'PLAYING') updateSectorSpawners(dt);
+          if (gameState === 'PLAYING') updateApples(dt);
+          if (gameState === 'PLAYING') updateEnemies(dt);
+          updateEffects(dt);
+          updateCamera(false);
+          updateHUD();
+        } else if (gameState === 'DYING') {
+          deathTimer -= dt;
+          updateEffects(dt);
+          if (deathTimer <= 0) {
+            // Immediately move back to the very start of the game with a completely fresh world!
+            resetToFreshStart(true);
+          }
+        }
+
+        renderWorld();
+        renderMinimap();
+        requestAnimationFrame(loop);
+      }
+
+      /* =====================================================================
+         16. INPUT BINDINGS (Keyboard + Slide Touch D-Pad + Fire + Modals)
+         ===================================================================== */
+      const MOVE_CODES = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
+
+      window.addEventListener('keydown', (e) => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+          e.preventDefault();
+        }
+        heldKeys.add(e.code);
+
+        if (gameState === 'READY' && (MOVE_CODES.has(e.code) || e.code === 'Space' || e.code === 'KeyZ')) {
+          Sound.unlock();
+          activateFromReadyState();
+        }
+
+        if ((e.code === 'Space' || e.code === 'KeyZ') && !e.repeat) {
+          if (gameState === 'PLAYING') {
+            throwPowerball();
+          } else if (gameState === 'TITLE') {
+            resetToFreshStart(false);
+          }
+        } else if (e.code === 'KeyP' && !e.repeat) {
+          togglePauseModal();
+        } else if (e.code === 'KeyM' && !e.repeat) {
+          toggleMute();
+        }
+      });
+
+      window.addEventListener('keyup', (e) => {
+        heldKeys.delete(e.code);
+      });
+
+      window.addEventListener('blur', () => {
+        heldKeys.clear();
+        setTouchDpad(null);
+      });
+
+      // Smooth Slide-Across Touch D-Pad
+      const dpadWrap = document.getElementById('dpadWrap');
+      const dpadBtns = Array.from(dpadWrap.querySelectorAll('.dpad-btn'));
+      let dpadPointerId = null;
+
+      function setTouchDpad(dirCode) {
+        touchDir = dirCode;
+        dpadBtns.forEach((b) => b.classList.toggle('active', b.dataset.dir === dirCode));
+      }
+
+      function resolveDpadAt(clientX, clientY) {
+        const el = document.elementFromPoint(clientX, clientY);
+        const btn = el && el.closest('.dpad-btn');
+        if (btn) return btn.dataset.dir;
+        const rect = dpadWrap.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        if (Math.hypot(dx, dy) < 12) return touchDir;
+        return Math.abs(dx) > Math.abs(dy)
+          ? (dx > 0 ? 'RIGHT' : 'LEFT')
+          : (dy > 0 ? 'DOWN' : 'UP');
+      }
+
+      dpadWrap.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        Sound.unlock();
+        dpadPointerId = e.pointerId;
+        try { dpadWrap.setPointerCapture(e.pointerId); } catch (err) {}
+        const dir = resolveDpadAt(e.clientX, e.clientY);
+        setTouchDpad(dir);
+        if (gameState === 'READY' && dir) activateFromReadyState();
+      });
+
+      dpadWrap.addEventListener('pointermove', (e) => {
+        if (dpadPointerId !== e.pointerId) return;
+        e.preventDefault();
+        const dir = resolveDpadAt(e.clientX, e.clientY);
+        setTouchDpad(dir);
+        if (gameState === 'READY' && dir) activateFromReadyState();
+      });
+
+      function releaseDpad(e) {
+        if (dpadPointerId !== null && e.pointerId !== dpadPointerId) return;
+        dpadPointerId = null;
+        setTouchDpad(null);
+      }
+      dpadWrap.addEventListener('pointerup', releaseDpad);
+      dpadWrap.addEventListener('pointercancel', releaseDpad);
+
+      // Fire Button
+      btnFire.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        Sound.unlock();
+        btnFire.classList.add('pressed');
+        setTimeout(() => btnFire.classList.remove('pressed'), 100);
+        if (gameState === 'READY') activateFromReadyState();
+        throwPowerball();
+      });
+
+      // Minimap zoom toggle
+      const minimapCard = document.getElementById('minimapCard');
+      minimapCard.addEventListener('click', () => {
+        minimapCard.classList.toggle('expanded');
+      });
+
+      // Mute & Pause & Launcher
+      const btnMute = document.getElementById('btnMute');
+      function toggleMute() {
+        Sound.unlock();
+        const next = !Sound.isMuted();
+        Sound.setMuted(next);
+        btnMute.textContent = next ? '🔇' : '🔊';
+      }
+      btnMute.addEventListener('click', toggleMute);
+
+      function togglePauseModal() {
+        const startModal = document.getElementById('startModal');
+        const btnStartPlay = document.getElementById('btnStartPlay');
+        const btnResumePlay = document.getElementById('btnResumePlay');
+
+        if (gameState === 'PLAYING' || gameState === 'READY') {
+          gameState = 'PAUSED';
+          Sound.stopBgm();
+          document.getElementById('startModalTitle').textContent = '일시정지 · 규칙 안내';
+          btnStartPlay.textContent = '처음부터 새로 시작 ↻';
+          btnResumePlay.style.display = 'block';
+          startModal.classList.add('open');
+        } else if (gameState === 'PAUSED') {
+          startModal.classList.remove('open');
+          gameState = 'PLAYING';
+          checkPlayerSectorEntry();
+          Sound.startBgm();
+        }
+      }
+
+      document.getElementById('btnPause').addEventListener('click', togglePauseModal);
+      document.getElementById('btnResumePlay').addEventListener('click', () => {
+        if (gameState === 'PAUSED') togglePauseModal();
+      });
+      document.getElementById('btnStartPlay').addEventListener('click', () => {
+        document.getElementById('btnResumePlay').style.display = 'none';
+        resetToFreshStart(false);
+      });
+      document.getElementById('btnRestart').addEventListener('click', () => {
+        resetToFreshStart(false);
+      });
+
+      document.getElementById('btnLauncher').addEventListener('click', (e) => {
+        if (window.history.length > 1 && document.referrer && location.origin !== 'null' && document.referrer.indexOf(location.origin) === 0) {
+          e.preventDefault();
+          window.history.back();
+        }
+      });
+
+      window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      /* =====================================================================
+         17. BOOTSTRAP
+         ===================================================================== */
+      loadRecords();
+      buildSprites();
+      buildOpenWorld();
+      player.x = START_COL * TILE + TILE / 2;
+      player.y = START_ROW * TILE + TILE / 2;
+      updateCamera(true);
+      updateHUD();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
